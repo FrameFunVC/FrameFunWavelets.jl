@@ -1,0 +1,6 @@
+Pkg.clone("https://github.com/vincentcp/WaveletsCopy.git")
+# Pkg.clone("https://github.com/vincentcp/LinearAlgebra.jl.git")
+Pkg.clone("https://github.com/daanhb/BasisFunctions.jl.git")
+Pkg.checkout("BasisFunctions","extract")
+Pkg.build("BasisFunctions")
+Pkg.clone("https://github.com/daanhb/Domains.jl.git")
