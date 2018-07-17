@@ -4,7 +4,7 @@ using BasisFunctions
     using Base.Test
     using WaveletsCopy.DWT: wavelet, scaling, db3,  db4, Primal
     using StaticArrays
-    using BasisFunctions: wavelet_dual
+    using WaveletsDict: wavelet_dual
     using Domains
     try
         test_generic_dict_interface
