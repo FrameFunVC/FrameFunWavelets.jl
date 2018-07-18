@@ -3,9 +3,9 @@ using WaveletsCopy, BasisFunctions, RecipesBase, Domains
 
 using BasisFunctions: VerticalBandedOperator, AbstractSamplingOperator, HorizontalBandedOperator
 using BasisFunctions: oversampled_grid, tensor_generator, SteppingSequence, TensorSequence
-using BasisFunctions: has_grid_equal_span
+using BasisFunctions: has_grid_equal_span, GenericPlatform
 
-using WaveletsCopy.DWT: Side, Kind, Prl, Scl, Wvl, DiscreteWavelet, WaveletIndex
+using WaveletsCopy.DWT: Side, Kind, Prl, Dul, Scl, Wvl, DiscreteWavelet, WaveletIndex
 using WaveletsCopy.DWT: Filterbank, WaveletBoundary, SFilterBank
 using WaveletsCopy.DWT: wavelet_index, scaling_indices, scaling_index
 using WaveletsCopy.DWT: evaluate_periodic_in_dyadic_points!, dwt!, idwt!, evaluate_periodic_scaling_basis_in_dyadic_points, _evaluate_periodic_scaling_basis_in_dyadic_points!
@@ -23,6 +23,8 @@ import BasisFunctions: transform_from_grid, transform_to_grid, unsafe_eval_eleme
 import BasisFunctions: is_basis, is_orthogonal, Gram, evaluation_matrix!
 import BasisFunctions: dict_promote_domaintype, instantiate, is_compatible, plotgrid
 import BasisFunctions: apply, dest, src_space, Zt
+
+import Base:promote_eltype
 
 export DaubechiesWaveletBasis, CDFWaveletBasis, WaveletIndex, WaveletBasis, DaubechiesScalingBasis, CDFScalingBasis, ScalingBasis
 export scaling_platform, wavelet_dual, WaveletTensorDict, dyadic_length, wavelet, kind, side

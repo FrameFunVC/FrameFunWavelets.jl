@@ -1,6 +1,5 @@
 # test_wavelets.jl
 using BasisFunctions, Domains, StaticArrays, WaveletsDict
-BF = BasisFunctions
 using Base.Test
 
 using WaveletsCopy.DWT: quad_trap, quad_sf, quad_sf_weights, quad_sf_N, quad_trap_N
