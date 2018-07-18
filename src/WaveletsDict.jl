@@ -84,7 +84,7 @@ function apply!{B<:WaveletBasis}(op::Restriction, dest::B, src::B, coef_dest, co
     coef_dest
 end
 
-has_extension(b::WaveletBasis{T,S,Wvl}) where{T,S} = true
+has_extension(b::WaveletBasis{T,S}) where{T,S} = true
 
 approx_length(b::WaveletBasis, n::Int) = 1<<ceil(Int, log2(n))
 
