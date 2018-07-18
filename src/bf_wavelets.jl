@@ -22,7 +22,7 @@ length(b::WaveletBasis) = 1<<dyadic_length(b)
 """
 The wavelet type
 """
-BasisFunctions.wavelet(b::WaveletBasis) = b.w
+wavelet(b::WaveletBasis) = b.w
 
 BasisFunctions.name(b::WaveletBasis) = "Basis of "*name(wavelet(b))*" wavelets"
 
@@ -91,8 +91,8 @@ BasisFunctions.left(b::WaveletBasis{T}, i::WaveletIndex) where {T} = T(0)
 BasisFunctions.right(b::WaveletBasis{T}, i::WaveletIndex) where {T} = T(1)
 
 function first_index(b::WaveletBasis, x::Real)
-    ii, on_edge = BasisFunctions.interval_index(b, x)
-    s = support(BasisFunctions.side(b), BasisFunctions.kind(b), wavelet(b))
+    ii, on_edge = interval_index(b, x)
+    s = support(side(b), kind(b), wavelet(b))
     s1 = Int(s[1])
     L = Int(s[2]) - s1
     if L == 1
@@ -261,8 +261,8 @@ end
 # end
 function EvalOperator(dict::WaveletBasis{T,S,Scl}, dgs::GridBasis, d::Int; options...) where {T,S}
     w = wavelet(dict)
-    j = BasisFunctions.dyadic_length(dict)
-    s = BasisFunctions.side(dict)
+    j = dyadic_length(dict)
+    s = side(dict)
     coefs = zeros(dict)
     coefs[1] = 1
     y = evaluate_periodic_scaling_basis_in_dyadic_points(s, w, coefs, d)
@@ -572,9 +572,9 @@ WeightOperator(dict::WaveletTensorDict, oversampling::Vector{Int}, recursion::Ve
     TensorProductOperator([WeightOperator(di, osi, reci) for (di, osi, reci) in zip(elements(dict), oversampling, recursion)]...)
 _weight_operator(dict::WaveletTensorDict, dyadic_os) =
     TensorProductOperator([_weight_operator(di, dyadic_os) for di in elements(dict)]...)
-BasisFunctions.grid_evaluation_operator(s::BasisFunctions.WaveletTensorDict, dgs::GridBasis, grid::AbstractSubGrid; options...) =
+BasisFunctions.grid_evaluation_operator(s::WaveletTensorDict, dgs::GridBasis, grid::AbstractSubGrid; options...) =
     restriction_operator(gridbasis(supergrid(grid), coeftype(s)), gridbasis(grid, coeftype(s)))*grid_evaluation_operator(s, gridbasis(supergrid(grid), coeftype(s)), supergrid(grid))
-BasisFunctions.grid_evaluation_operator(s::BasisFunctions.WaveletTensorDict, dgs::GridBasis, grid::ProductGrid; options...) =
+BasisFunctions.grid_evaluation_operator(s::WaveletTensorDict, dgs::GridBasis, grid::ProductGrid; options...) =
     TensorProductOperator([grid_evaluation_operator(dict, gridbasis(g, coeftype(s)), g) for (dict, g) in zip(elements(s), elements(grid))]...)
 BasisFunctions.Zt(dual::WaveletTensorDict, dual_sampler::DWTSamplingOperator; options...) = DictionaryOperator(dual_sampler)
 

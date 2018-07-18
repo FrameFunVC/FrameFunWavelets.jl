@@ -1,25 +1,11 @@
 # test_wavelets.jl
-using BasisFunctions
-    BF = BasisFunctions
-    using Base.Test
-    using WaveletsCopy.DWT: wavelet, scaling, db3,  db4, Primal
-    using StaticArrays
-    using WaveletsDict: wavelet_dual
-    using Domains
-    try
-        test_generic_dict_interface
-    catch
-        include("test_generic_dicts.jl")
-        include("util_functions.jl")
-    end
-    suitable_function(set::BasisFunctions.WaveletBasis) =  x -> 1/(10+cos(2*pi*x))
-
-    BasisFunctions.has_transform(::WaveletBasis) = false
-
-    supports_interpolation(::WaveletBasis) = false
-
+using BasisFunctions, Domains, StaticArrays, WaveletsDict
+BF = BasisFunctions
+using Base.Test
 
 using WaveletsCopy.DWT: quad_trap, quad_sf, quad_sf_weights, quad_sf_N, quad_trap_N
+using WaveletsCopy.DWT: wavelet, Dual, scaling, db3,  db4, Primal, Prl, value
+
 function test_wavelet_quadrature()
         @testset begin
             M1 = 5; M2 = 10; J = 3
@@ -27,13 +13,13 @@ function test_wavelet_quadrature()
             reference = quad_sf_N(g, wav, M2, J, 5)
 
             b = DaubechiesWaveletBasis(3,J)
-            S = BasisFunctions.DWTSamplingOperator(b, Int(M1/5),0)
+            S = WaveletsDict.DWTSamplingOperator(b, Int(M1/5),0)
             @test norm(S*g-reference/sqrt(1<<J)) < 1e-3
-            S = BasisFunctions.DWTSamplingOperator(b, Int(M2/5), 0)
+            S = WaveletsDict.DWTSamplingOperator(b, Int(M2/5), 0)
             @test norm(S*g-reference/sqrt(1<<J)) < 1e-8
-            S = BasisFunctions.DWTSamplingOperator(b, Int(M1/5),7)
+            S = WaveletsDict.DWTSamplingOperator(b, Int(M1/5),7)
             @test norm(S*g-reference/sqrt(1<<J)) < 1e-15
-            S = BasisFunctions.DWTSamplingOperator(b, Int(M2/5), 3)
+            S = WaveletsDict.DWTSamplingOperator(b, Int(M2/5), 3)
             @test norm(S*g-reference/sqrt(1<<J)) < 1e-15
         end
 end
@@ -43,9 +29,9 @@ test_wavelet_quadrature()
 
 function bf_wavelets_implementation_test()
     @testset begin
-        test_generic_dict_interface(CDFWaveletBasis(3,5,6))
-        test_generic_dict_interface(wavelet_dual(CDFWaveletBasis(3,5,6)))
-        test_generic_dict_interface(CDFScalingBasis(1,1,6))
+        # test_generic_dict_interface(CDFWaveletBasis(3,5,6))
+        # test_generic_dict_interface(wavelet_dual(CDFWaveletBasis(3,5,6)))
+        # test_generic_dict_interface(CDFScalingBasis(1,1,6))
 
         b1 = DaubechiesWaveletBasis(3,2)
         b2 = CDFWaveletBasis(3,1,5)
@@ -60,17 +46,17 @@ function bf_wavelets_implementation_test()
         for i in ordering(b1)
             @test support(b1,i) == UnitInterval()
         end
-        @test BasisFunctions.subdict(b1,1:1) == BasisFunctions.DaubechiesWaveletBasis(3,0)
+        @test BasisFunctions.subdict(b1,1:1) == DaubechiesWaveletBasis(3,0)
         @test BasisFunctions.subdict(b2,1:3) == BasisFunctions.LargeSubdict(b2,1:3)
         @test b2[1:5] == BasisFunctions.LargeSubdict(b2,1:5)
-        @test b2[1:4] == BasisFunctions.CDFWaveletBasis(3,1,2)
-        @test BasisFunctions.dyadic_length(b1) == 2
-        @test BasisFunctions.dyadic_length(b2) == 5
+        @test b2[1:4] == CDFWaveletBasis(3,1,2)
+        @test dyadic_length(b1) == 2
+        @test dyadic_length(b2) == 5
         @test length(b1) == 4
         @test length(b2) == 32
         @test BasisFunctions.dict_promote_domaintype(b1,Complex128) == DaubechiesWaveletBasis(3,2, Complex128)
-        @test BasisFunctions.dict_promote_domaintype(b2, Complex128) == CDFWaveletBasis(3,1,5, BasisFunctions.Prl, Complex128)
-        @test resize(b1,8) == BasisFunctions.DaubechiesWaveletBasis(3,3)
+        @test BasisFunctions.dict_promote_domaintype(b2, Complex128) == CDFWaveletBasis(3,1,5, Prl, Complex128)
+        @test resize(b1,8) == DaubechiesWaveletBasis(3,3)
         @test BasisFunctions.name(b1) == "Basis of db3 wavelets"
         @test BasisFunctions.name(b2) == "Basis of cdf31 wavelets"
         @test BasisFunctions.native_index(b,1) == (scaling, 0, 0)
@@ -92,11 +78,11 @@ function bf_wavelets_implementation_test()
         for g in (plotgrid(b,200), PeriodicEquispacedGrid(128,0,1))
             for i in ordering(b)
                 tic(); e1 = BasisFunctions._default_unsafe_eval_element_in_grid(b, i, g); t1 = toq();
-                tic(); e2 = BasisFunctions._unsafe_eval_element_in_dyadic_grid(b, i, g); t2 = toq();
+                tic(); e2 = WaveletsDict._unsafe_eval_element_in_dyadic_grid(b, i, g); t2 = toq();
             end
             for i in ordering(b)
                 tic(); e1 = BasisFunctions._default_unsafe_eval_element_in_grid(b, i, g); t1 = toq();
-                tic(); e2 = BasisFunctions._unsafe_eval_element_in_dyadic_grid(b, i, g); t2 = toq();
+                tic(); e2 = WaveletsDict._unsafe_eval_element_in_dyadic_grid(b, i, g); t2 = toq();
                 @test e1 ≈ e2
                 @test t2 < t1
             end
@@ -105,7 +91,7 @@ function bf_wavelets_implementation_test()
         b1 = DaubechiesWaveletBasis(3,6)
         b2 = CDFWaveletBasis(3,1,5)
         b = CDFWaveletBasis(1,1,6)
-        for basis in (b,b1,b2,BasisFunctions.wavelet_dual(b), ScalingBasis(b))
+        for basis in (b,b1,b2,wavelet_dual(b), ScalingBasis(b))
             @test evaluation_matrix(basis, BasisFunctions.grid(basis))≈evaluation_matrix(basis, collect(BasisFunctions.grid(basis)))
             T = Float64
             ELT = Float64
@@ -123,6 +109,5 @@ using Plots
 b = CDFWaveletBasis(1,5,3)
 plot(b,layout=2)
 plot(wavelet_dual(b)[3:4],layout=2,subplot=1)
-plot!(BasisFunctions.Dual, wavelet, wavelet(b),j=1,k=0,subplot=2,periodic=true)
-plot!(BasisFunctions.Dual, wavelet, wavelet(b),j=1,k=1,subplot=2,periodic=true)
-BasisFunctions.has_transform(::WaveletBasis) = true
+plot!(Dual, wavelet, wavelet(b),j=1,k=0,subplot=2,periodic=true)
+plot!(Dual, wavelet, wavelet(b),j=1,k=1,subplot=2,periodic=true)
