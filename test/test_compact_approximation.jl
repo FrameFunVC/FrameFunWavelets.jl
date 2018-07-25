@@ -1,5 +1,9 @@
 using BasisFunctions, Domains, StaticArrays, WaveletsDict
-using Base.Test
+if VERSION < v"0.7-"
+    using Base.Test
+else
+    using Test
+end
 using WaveletsCopy: cdf33, db3, cdf13
 
 

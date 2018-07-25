@@ -1,6 +1,11 @@
 # test_wavelets.jl
 using BasisFunctions, Domains, StaticArrays, WaveletsDict, BasisFunctions.Test
-using Base.Test
+if VERSION < v"0.7-"
+    using Base.Test
+    ComplexF64 = Complex128
+else
+    using Test
+end
 
 using WaveletsCopy.DWT: quad_trap, quad_sf, quad_sf_weights, quad_sf_N, quad_trap_N
 using WaveletsCopy.DWT: wavelet, Dual, scaling, db3,  db4, Primal, Prl, value
@@ -61,8 +66,8 @@ function bf_wavelets_implementation_test()
         @test dyadic_length(b2) == 5
         @test length(b1) == 4
         @test length(b2) == 32
-        @test BasisFunctions.dict_promote_domaintype(b1,Complex128) == DaubechiesWaveletBasis(3,2, Complex128)
-        @test BasisFunctions.dict_promote_domaintype(b2, Complex128) == CDFWaveletBasis(3,1,5, Prl, Complex128)
+        @test BasisFunctions.dict_promote_domaintype(b1,ComplexF64) == DaubechiesWaveletBasis(3,2, ComplexF64)
+        @test BasisFunctions.dict_promote_domaintype(b2, ComplexF64) == CDFWaveletBasis(3,1,5, Prl, ComplexF64)
         @test resize(b1,8) == DaubechiesWaveletBasis(3,3)
         @test BasisFunctions.name(b1) == "Basis of db3 wavelets"
         @test BasisFunctions.name(b2) == "Basis of cdf31 wavelets"
@@ -84,12 +89,16 @@ function bf_wavelets_implementation_test()
         # test grid eval functions
         for g in (plotgrid(b,200), PeriodicEquispacedGrid(128,0,1))
             for i in ordering(b)
-                tic(); e1 = BasisFunctions._default_unsafe_eval_element_in_grid(b, i, g); t1 = toq();
-                tic(); e2 = WaveletsDict._unsafe_eval_element_in_dyadic_grid(b, i, g); t2 = toq();
+                t=@timed e1 = BasisFunctions._default_unsafe_eval_element_in_grid(b, i, g)
+                t1 = t[2]
+                t = @timed e2 = WaveletsDict._unsafe_eval_element_in_dyadic_grid(b, i, g)
+                t2 = t[2]
             end
             for i in ordering(b)
-                tic(); e1 = BasisFunctions._default_unsafe_eval_element_in_grid(b, i, g); t1 = toq();
-                tic(); e2 = WaveletsDict._unsafe_eval_element_in_dyadic_grid(b, i, g); t2 = toq();
+                t = @timed e1 = BasisFunctions._default_unsafe_eval_element_in_grid(b, i, g)
+                t1 = t[2]
+                t = @timed e2 = WaveletsDict._unsafe_eval_element_in_dyadic_grid(b, i, g)
+                t2 = t[2]
                 @test e1 ≈ e2
                 @test t2 < t1
             end
@@ -112,9 +121,11 @@ function bf_wavelets_implementation_test()
 end
 bf_wavelets_implementation_test()
 
-using Plots
-b = CDFWaveletBasis(1,5,3)
-plot(b,layout=2)
-plot(wavelet_dual(b)[3:4],layout=2,subplot=1)
-plot!(Dual, wavelet, wavelet(b),j=1,k=0,subplot=2,periodic=true)
-plot!(Dual, wavelet, wavelet(b),j=1,k=1,subplot=2,periodic=true)
+if VERSION < v"0.7-"
+    using Plots
+    b = CDFWaveletBasis(1,5,3)
+    plot(b,layout=2)
+    plot(wavelet_dual(b)[3:4],layout=2,subplot=1)
+    plot!(Dual, wavelet, wavelet(b),j=1,k=0,subplot=2,periodic=true)
+    plot!(Dual, wavelet, wavelet(b),j=1,k=1,subplot=2,periodic=true)
+end
