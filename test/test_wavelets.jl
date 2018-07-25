@@ -1,9 +1,17 @@
 # test_wavelets.jl
-using BasisFunctions, Domains, StaticArrays, WaveletsDict
+using BasisFunctions, Domains, StaticArrays, WaveletsDict, BasisFunctions.Test
 using Base.Test
 
 using WaveletsCopy.DWT: quad_trap, quad_sf, quad_sf_weights, quad_sf_N, quad_trap_N
 using WaveletsCopy.DWT: wavelet, Dual, scaling, db3,  db4, Primal, Prl, value
+
+for T in (Float64, BigFloat)
+    @testset "$(rpad(string(PeriodicEquispacedGrid),80))" begin
+        g = instantiate(PeriodicEquispacedGrid,10,T)
+        test_interval_grid(g)
+    end
+end
+
 
 function test_wavelet_quadrature()
         @testset begin

@@ -2,21 +2,6 @@ using BasisFunctions, Domains, StaticArrays, WaveletsDict
 using Base.Test
 using WaveletsCopy: cdf33, db3, cdf13
 
-# function test_coefficient_index_range_of_overlapping_elements()
-#     L = 5
-#     S = ScalingBasis(cdf33, L)
-#     for x in [0, 0.01, 0.99]
-#         g = ScatteredGrid([x])
-#         @test sort(find(evaluation_matrix(S, g).!=0)) == sort(collect(coefficient_index_range_of_overlapping_elements(S, g[1])))
-#     end
-#     S = S⊗S
-#     for x in [0, 0.01, 0.99]
-#         g = ScatteredGrid([x])
-#         g = g×g
-#         @test sort(find(evaluation_matrix(S, g).!=0)) == sort([sub2ind(size(S), i.I...) for i in coefficient_index_range_of_overlapping_elements(S, g[1])])
-#     end
-# end
-
 
 function test_scaling_platform()
     platform = scaling_platform([4,5], [db3,db3], 2)

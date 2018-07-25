@@ -14,7 +14,7 @@ using WaveletsCopy: Sequences
 
 import WaveletsCopy.DWT: isdyadic, value, wavelet, kind
 
-import BasisFunctions: dyadic_length, subdict, compatible_grid, has_grid_transform, name
+import BasisFunctions: subdict, compatible_grid, has_grid_transform, name
 import BasisFunctions: left, right, length, support, native_index, checkbounds, apply!
 import BasisFunctions: has_extension, approx_length, resize, has_grid, period, grid
 import BasisFunctions: ordering, linear_index, has_transform, extension_size
@@ -22,12 +22,56 @@ import BasisFunctions: approximate_native_size, has_unitary_transform
 import BasisFunctions: transform_from_grid, transform_to_grid, unsafe_eval_element, unsafe_eval_element1
 import BasisFunctions: is_basis, is_orthogonal, Gram, evaluation_matrix!
 import BasisFunctions: dict_promote_domaintype, instantiate, is_compatible, plotgrid
-import BasisFunctions: apply, dest, src_space, Zt
+import BasisFunctions: apply, dest, src_space, Zt, AbstractEquispacedGrid, PeriodicEquispacedGrid
 
-import Base:promote_eltype
+import BasisFunctions: length, similar_grid, has_extension, resize, extend, stepsize
+
+import Base:promote_eltype, ==
 
 export DaubechiesWaveletBasis, CDFWaveletBasis, WaveletIndex, WaveletBasis, DaubechiesScalingBasis, CDFScalingBasis, ScalingBasis
-export scaling_platform, wavelet_dual, WaveletTensorDict, dyadic_length, wavelet, kind, side
+export scaling_platform, wavelet_dual, WaveletTensorDict, dyadic_length, wavelet, kind, side, DyadicPeriodicEquispacedGrid
+
+
+"""
+A dyadic periodic equispaced grid is an equispaced grid that omits the right
+endpoint and has length `n = 2^l`.
+It has stepsize `(b-a)/n`.
+"""
+struct DyadicPeriodicEquispacedGrid{T} <: AbstractEquispacedGrid{T}
+    l   ::  Int
+    a   ::  T
+    b   ::  T
+
+    DyadicPeriodicEquispacedGrid{T}(l, a = zero(T), b = one(T)) where {T} = (@assert a < b; new(l, a, b))
+end
+
+dyadic_length(g::DyadicPeriodicEquispacedGrid) = g.l
+
+length(g::DyadicPeriodicEquispacedGrid) = 1<<dyadic_length(g)
+
+DyadicPeriodicEquispacedGrid(l::Int, ::Type{T} = Float64) where {T} = DyadicPeriodicEquispacedGrid{T}(l)
+
+DyadicPeriodicEquispacedGrid(l::Int, a, b, ::Type{T} = typeof((b-a)/l)) where {T} = DyadicPeriodicEquispacedGrid{T}(l, a, b)
+
+DyadicPeriodicEquispacedGrid(l::Int, d::AbstractInterval, ::Type{T}=eltype(d)) where {T} = DyadicPeriodicEquispacedGrid{T}(l, infimum(d),supremum(d))
+
+PeriodicEquispacedGrid(g::DyadicPeriodicEquispacedGrid{T}) where {T} = PeriodicEquispacedGrid{T}(length(g), g.a, g.b)
+
+similar_grid(g::DyadicPeriodicEquispacedGrid, a, b, T) = DyadicPeriodicEquispacedGrid{T}(g.l, a, b)
+
+has_extension(::DyadicPeriodicEquispacedGrid) = true
+
+resize(g::DyadicPeriodicEquispacedGrid, n::Int) = DyadicPeriodicEquispacedGrid(n, g.a, g.b)
+
+extend(g::DyadicPeriodicEquispacedGrid, factor::Int) = resize(g, factor*g.l)
+
+stepsize(g::DyadicPeriodicEquispacedGrid) = (g.b-g.a)/length(g)
+
+# We need this basic definition, otherwise equality does not seem to hold when T is BigFloat...
+==(g1::DyadicPeriodicEquispacedGrid, g2::DyadicPeriodicEquispacedGrid) =
+    (g1.l == g2.l) && (g1.a == g2.a) && (g1.b==g2.b)
+==(g1::DyadicPeriodicEquispacedGrid, g2::PeriodicEquispacedGrid) =
+    (length(g1) == length(g2)) && (g1.a == g2.a) && (g1.b==g2.b)
 
 abstract type WaveletBasis{T,S,K} <: Dictionary1d{T,T} where {S <: Side,K<:Kind}
 end
@@ -119,21 +163,6 @@ end
 left(b::WaveletBasis{T}, i::WaveletIndex) where {T} = T(0)
 right(b::WaveletBasis{T}, i::WaveletIndex) where {T} = T(1)
 
-function first_index(b::WaveletBasis, x::Real)
-    ii, on_edge = interval_index(b, x)
-    s = support(side(b), kind(b), wavelet(b))
-    s1 = Int(s[1])
-    L = Int(s[2]) - s1
-    if L == 1
-        return mod(ii-s1-1,length(b))+1, 1
-    end
-    if on_edge
-        return mod(ii-s1-2,length(b))+1, L - 1
-    else
-        return mod(ii-s1-1,length(b))+1, L
-    end
-end
-_element_spans_one(b::WaveletBasis) = support_length(side(b), kind(b), wavelet(b)) == 1
 
 period{T}(::WaveletBasis{T}) = T(1)
 
