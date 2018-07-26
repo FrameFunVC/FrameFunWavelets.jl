@@ -11,8 +11,8 @@ using WaveletsCopy.DWT: quad_trap, quad_sf, quad_sf_weights, quad_sf_N, quad_tra
 using WaveletsCopy.DWT: wavelet, Dual, scaling, db3,  db4, Primal, Prl, value
 
 for T in (Float64, BigFloat)
-    @testset "$(rpad(string(PeriodicEquispacedGrid),80))" begin
-        g = instantiate(PeriodicEquispacedGrid,10,T)
+    @testset "$(rpad(string(DyadicPeriodicEquispacedGrid),80))" begin
+        g = instantiate(DyadicPeriodicEquispacedGrid,4 ,T)
         test_interval_grid(g)
     end
 end

@@ -29,7 +29,8 @@ import BasisFunctions: length, similar_grid, has_extension, resize, extend, step
 import Base:promote_eltype, ==
 
 export DaubechiesWaveletBasis, CDFWaveletBasis, WaveletIndex, WaveletBasis, DaubechiesScalingBasis, CDFScalingBasis, ScalingBasis
-export scaling_platform, wavelet_dual, WaveletTensorDict, dyadic_length, wavelet, kind, side, DyadicPeriodicEquispacedGrid
+export scaling_platform, wavelet_dual, WaveletTensorDict, dyadic_length, wavelet, kind, side, DyadicPeriodicEquispacedGrid, instantiate
+export extend, has_extension
 
 
 """
@@ -63,7 +64,7 @@ has_extension(::DyadicPeriodicEquispacedGrid) = true
 
 resize(g::DyadicPeriodicEquispacedGrid, n::Int) = DyadicPeriodicEquispacedGrid(n, g.a, g.b)
 
-extend(g::DyadicPeriodicEquispacedGrid, factor::Int) = resize(g, factor*g.l)
+extend(g::DyadicPeriodicEquispacedGrid, factor::Int) = resize(g, Int(log2(factor))+g.l)
 
 stepsize(g::DyadicPeriodicEquispacedGrid) = (g.b-g.a)/length(g)
 
