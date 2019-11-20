@@ -1,72 +1,90 @@
-module WaveletsDict
-using WaveletsCopy, BasisFunctions, RecipesBase, Domains
+module FrameFunWavelets
+using WaveletsEvaluation, BasisFunctions, RecipesBase, DomainSets,
+    CompactTranslatesDict, GridArrays, InfiniteVectors
 
-using BasisFunctions: VerticalBandedOperator, AbstractSamplingOperator, HorizontalBandedOperator
-using BasisFunctions: oversampled_grid, tensor_generator, SteppingSequence, TensorSequence
-using BasisFunctions: has_grid_equal_span, GenericPlatform
+using DomainSets: endpoints
 
-using WaveletsCopy.DWT: Side, Kind, Prl, Dul, Scl, Wvl, DiscreteWavelet, WaveletIndex
-using WaveletsCopy.DWT: Filterbank, WaveletBoundary, SFilterBank
-using WaveletsCopy.DWT: wavelet_index, scaling_indices, scaling_index
-using WaveletsCopy.DWT: evaluate_periodic_in_dyadic_points!, dwt!, idwt!, evaluate_periodic_scaling_basis_in_dyadic_points, _evaluate_periodic_scaling_basis_in_dyadic_points!
-using WaveletsCopy.Sequences
+using BasisFunctions: VerticalBandedOperator, SamplingOperator, HorizontalBandedOperator
+using CompactTranslatesDict: PeriodicInterval
+
+using WaveletsEvaluation.DWT: Side, Kind, Prl, Dul, Scl, Wvl, DiscreteWavelet, WaveletIndex
+using WaveletsEvaluation.DWT: Filterbank, WaveletBoundary, SFilterBank
+using WaveletsEvaluation.DWT: wavelet_index, scaling_indices, scaling_index
+using WaveletsEvaluation.DWT: evaluate_periodic_in_dyadic_points!, dwt!, idwt!, offset,
+    evaluate_periodic_scaling_basis_in_dyadic_points, _evaluate_periodic_scaling_basis_in_dyadic_points!
 
 
-import WaveletsCopy.DWT: isdyadic, value, wavelet, kind
+import WaveletsEvaluation.DWT: isdyadic, value, wavelet, kind
 
-import BasisFunctions: subdict, compatible_grid, has_grid_transform, name
-import BasisFunctions: left, right, length, support, native_index, checkbounds, apply!
-import BasisFunctions: has_extension, approx_length, resize, has_grid, period, grid
-import BasisFunctions: ordering, linear_index, has_transform, extension_size
-import BasisFunctions: approximate_native_size, has_unitary_transform
+import GridArrays: similargrid, PeriodicEquispacedGrid
+
+import BasisFunctions: subdict, name, interpolation_grid
+import BasisFunctions: length, support, native_index, checkbounds, apply!
+import BasisFunctions: hasextension, approx_length, resize, period, grid
+import BasisFunctions: ordering, linear_index, hastransform, extension_size
+import BasisFunctions: approximate_native_size
 import BasisFunctions: transform_from_grid, transform_to_grid, unsafe_eval_element, unsafe_eval_element1
-import BasisFunctions: is_basis, is_orthogonal, Gram, evaluation_matrix!
-import BasisFunctions: dict_promote_domaintype, instantiate, is_compatible, plotgrid
-import BasisFunctions: apply, dest, src_space, Zt, AbstractEquispacedGrid, PeriodicEquispacedGrid
+import BasisFunctions: isbasis, isorthogonal, evaluation_matrix!, gramoperator
+import BasisFunctions: promote_domaintype, instantiate, iscompatible, plotgrid
+import BasisFunctions: apply, dest, src_space
 
-import BasisFunctions: length, similar_grid, has_extension, resize, extend, stepsize
 
-import Base:promote_eltype, ==
+import Base:promote_eltype, ==, size
 
 export DaubechiesWaveletBasis, CDFWaveletBasis, WaveletIndex, WaveletBasis, DaubechiesScalingBasis, CDFScalingBasis, ScalingBasis
-export scaling_platform, wavelet_dual, WaveletTensorDict, dyadic_length, wavelet, kind, side, DyadicPeriodicEquispacedGrid, instantiate
-export extend, has_extension
+export scaling_platform, WaveletTensorDict, dyadic_length, wavelet, kind, side, DyadicPeriodicEquispacedGrid
 
 
 """
 A dyadic periodic equispaced grid is an equispaced grid that omits the right
 endpoint and has length `n = 2^l`.
-It has stepsize `(b-a)/n`.
+It has step `(b-a)/n`.
 """
 struct DyadicPeriodicEquispacedGrid{T} <: AbstractEquispacedGrid{T}
+    range   :: LinRange{T}
     l   ::  Int
     a   ::  T
     b   ::  T
 
-    DyadicPeriodicEquispacedGrid{T}(l, a = zero(T), b = one(T)) where {T} = (@assert a < b; new(l, a, b))
+    DyadicPeriodicEquispacedGrid{T}(n::Int, a, b) where {T} =
+        (@assert isdyadic(n);new(LinRange(T(a),T(b),n+1)[1:end-1],Int(log2(n)),T(a),T(b)))
 end
 
+
+name(g::DyadicPeriodicEquispacedGrid) = "Dyadic periodic equispaced grid"
+support(grid::DyadicPeriodicEquispacedGrid) = Interval(grid.a, grid.b)
+isperiodic(::DyadicPeriodicEquispacedGrid) = true
+
 dyadic_length(g::DyadicPeriodicEquispacedGrid) = g.l
+length(g::DyadicPeriodicEquispacedGrid) = length(g.range)
 
-length(g::DyadicPeriodicEquispacedGrid) = 1<<dyadic_length(g)
+DyadicPeriodicEquispacedGrid(n::Int, d::AbstractInterval) =
+    DyadicPeriodicEquispacedGrid(n, endpoints(d)...)
+similargrid(grid::DyadicPeriodicEquispacedGrid, ::Type{T}, n::Int) where {T} =
+    DyadicPeriodicEquispacedGrid{T}(n, map(T, endpoints(support(grid)))...)
+rescale(grid::DyadicPeriodicEquispacedGrid, a, b) =
+    DyadicPeriodicEquispacedGrid{promote_type(typeof(a/2),typeof(b/2),eltype(grid))}(length(grid), a, b)
+DyadicPeriodicEquispacedGrid(n::Int, a, b) =
+    DyadicPeriodicEquispacedGrid{promote_type(typeof(a/2),typeof(b/2))}(n, a, b)
+mapped_grid(grid::DyadicPeriodicEquispacedGrid, map::AffineMap) =
+    DyadicPeriodicEquispacedGrid(length(grid), endpoints(map*support(grid))...)
 
-DyadicPeriodicEquispacedGrid(l::Int, ::Type{T} = Float64) where {T} = DyadicPeriodicEquispacedGrid{T}(l)
-
-DyadicPeriodicEquispacedGrid(l::Int, a, b, ::Type{T} = typeof((b-a)/l)) where {T} = DyadicPeriodicEquispacedGrid{T}(l, a, b)
-
-DyadicPeriodicEquispacedGrid(l::Int, d::AbstractInterval, ::Type{T}=eltype(d)) where {T} = DyadicPeriodicEquispacedGrid{T}(l, infimum(d),supremum(d))
+isdyadic(::DyadicPeriodicEquispacedGrid) = true
+isdyadic(grid::PeriodicEquispacedGrid) = isdyadic(length(grid))
+isdyadic(::AbstractIntervalGrid) = false
 
 PeriodicEquispacedGrid(g::DyadicPeriodicEquispacedGrid{T}) where {T} = PeriodicEquispacedGrid{T}(length(g), g.a, g.b)
+DyadicPeriodicEquispacedGrid(g::PeriodicEquispacedGrid{T}) where {T} =
+    (@assert isdyadic(g);DyadicPeriodicEquispacedGrid(length(g),g.a,g.b))
 
-similar_grid(g::DyadicPeriodicEquispacedGrid, a, b, T) = DyadicPeriodicEquispacedGrid{T}(g.l, a, b)
+_extension_size(::DyadicPeriodicEquispacedGrid, n::Int, factor::Int) = (@assert isdyadic(factor);factor*n)
+hasextension(::DyadicPeriodicEquispacedGrid) = true
+extend(grid::DyadicPeriodicEquispacedGrid, factor::Int) =
+    resize(grid, _extension_size(grid, length(grid), factor))
 
-has_extension(::DyadicPeriodicEquispacedGrid) = true
-
+similargrid(g::DyadicPeriodicEquispacedGrid, a, b, T) = DyadicPeriodicEquispacedGrid{T}(g.l, a, b)
 resize(g::DyadicPeriodicEquispacedGrid, n::Int) = DyadicPeriodicEquispacedGrid(n, g.a, g.b)
 
-extend(g::DyadicPeriodicEquispacedGrid, factor::Int) = resize(g, Int(log2(factor))+g.l)
-
-stepsize(g::DyadicPeriodicEquispacedGrid) = (g.b-g.a)/length(g)
 
 # We need this basic definition, otherwise equality does not seem to hold when T is BigFloat...
 ==(g1::DyadicPeriodicEquispacedGrid, g2::DyadicPeriodicEquispacedGrid) =
@@ -82,23 +100,20 @@ native_index(dict::WaveletBasis, idx::WaveletIndex) = idx
 
 checkbounds(::Type{Bool}, dict::WaveletBasis, i::WaveletIndex) =
     checkbounds(Bool, dict, linear_index(dict, i))
-
-"Create a similar wavelet basis, but replacing the wavelet with its biorthogonal dual"
-function wavelet_dual end
-
 """
 The number of levels in the wavelet basis
 """
-dyadic_length(b::WaveletBasis) = b.L
+dyadic_length(dict::WaveletBasis) = dict.L
 
-length(b::WaveletBasis) = 1<<dyadic_length(b)
+length(dict::WaveletBasis) = 1<<dyadic_length(dict)
+size(dict::WaveletBasis) = (length(dict),)
 
 """
 The wavelet type
 """
-WaveletsCopy.wavelet(b::WaveletBasis) = b.w
+WaveletsEvaluation.wavelet(dict::WaveletBasis) = dict.w
 
-name(b::WaveletBasis) = "Basis of "*WaveletsCopy.DWT.name(wavelet(b))*" wavelets"
+name(b::WaveletBasis) = "Basis of "*WaveletsEvaluation.DWT.name(wavelet(b))*" wavelets"
 
 side(::WaveletBasis{T,S}) where {T,S} = S()
 
@@ -113,61 +128,34 @@ function subdict(b::WaveletBasis, idx::OrdinalRange)
     end
 end
 
-#  Extension is possible by putting zeros on the coefficients that correspond to detail information
-function apply!(op::Extension, dest::B, src::B, coef_dest, coef_src) where {B<:WaveletBasis}
-    @assert dyadic_length(dest) > dyadic_length(src)
-
-    coef_dest[1:length(src)] .= coef_src[1:length(src)]
-    coef_dest[length(src)+1:length(dest)] .= 0
-end
-
-#  Restriction by discarding all detail information
-function apply!(op::Restriction, dest::B, src::B, coef_dest, coef_src) where {B<:WaveletBasis}
-    @assert dyadic_length(dest) < dyadic_length(src)
-
-    coef_dest[1:length(dest)] .= coef_src[1:length(dest)]
-    coef_dest
-end
-
-has_extension(b::WaveletBasis{T,S}) where{T,S} = true
+hasextension(b::WaveletBasis{T,S}) where{T,S} = true
 
 approx_length(b::WaveletBasis, n::Int) = 1<<ceil(Int, log2(n))
 
 resize(b::B, n::Int) where {B<:WaveletBasis} = B(wavelet(b),round(Int, log2(n)))
 
-has_grid(::WaveletBasis) = true
+hasinterpolation_grid(::WaveletBasis) = true
 
-has_transform(::WaveletBasis) = true
-has_unitary_transform(::WaveletBasis) = false
+hastransform(::WaveletBasis) = true
 
-compatible_grid(set::WaveletBasis, grid::PeriodicEquispacedGrid) =
-    has_grid_equal_span(set,grid) && (length(set)==length(grid))
-compatible_grid(set::WaveletBasis, grid::DyadicPeriodicEquispacedGrid) =
-	has_grid_equal_span(set,grid) && (length(set)==length(grid))
-compatible_grid(set::WaveletBasis, grid::AbstractGrid) = false
-has_grid_transform(b::WaveletBasis, gb, grid) = compatible_grid(b, grid)
+iscompatible(set::WaveletBasis, grid::PeriodicEquispacedGrid) =
+    length(set)==length(grid)
+iscompatible(set::WaveletBasis, grid::DyadicPeriodicEquispacedGrid) =
+	length(set)==length(grid)
+hasgrid_transform(b::WaveletBasis, gb, grid) = iscompatible(b, grid)
 
-support(b::WaveletBasis) = UnitInterval{domaintype(b)}()
-left(b::WaveletBasis) = domaintype(b)(0)
-right(b::WaveletBasis) = domaintype(b)(1)
-
+support(dict::WaveletBasis{T}) where T = UnitInterval{T}()
+measure(dict::WaveletBasis{T}) where T = FourierMeasure{T}()
 support(b::WaveletBasis, idx) = support(b, native_index(b, idx))
 
-function support(b::WaveletBasis{T,S}, idxn::WaveletIndex) where {T,S}
-    l,r = WaveletsCopy.support(side(b), kind(idxn), wavelet(b), level(idxn), offset(idxn))
-    (r-l > 1) && (return support(b))
-    (l < 0) && (return union(interval(T(0),T(r)), interval(T(l+1), T(1))))
-    (r > 1) && (return union(interval(T(0),T(r-1)), interval(T(l), T(1))))
-    interval(T(l), T(r))
+function support(dict::WaveletBasis{T}, idxn::WaveletIndex) where {T}
+    l,r = WaveletsEvaluation.support(side(dict), kind(idxn), wavelet(dict), level(idxn), offset(idxn))
+    PeriodicInterval(Interval(T(l),T(r)), support(dict))
 end
-
-left(b::WaveletBasis, i::WaveletIndex) = domaintype(b)(0)
-right(b::WaveletBasis, i::WaveletIndex) = domaintype(b)(1)
-
 
 period(b::WaveletBasis) = domaintype(b)(1)
 
-grid(b::WaveletBasis{T}) where {T} = DyadicPeriodicEquispacedGrid(dyadic_length(b), support(b), T)
+interpolation_grid(b::WaveletBasis{T}) where {T} = DyadicPeriodicEquispacedGrid(length(b), support(b))
 
 
 ordering(b::WaveletBasis{T,S,Wvl}) where {T,S<:Side} = wavelet_indices(dyadic_length(b))
@@ -200,7 +188,7 @@ unsafe_eval_element1(dict::WaveletBasis, idxn::WaveletIndex, grid::DyadicPeriodi
     _unsafe_eval_element_in_dyadic_grid(dict, idxn, grid; options...)
 
 function unsafe_eval_element1(dict::WaveletBasis, idxn::WaveletIndex, grid::PeriodicEquispacedGrid; options...)
-    if isdyadic(length(grid)) && has_grid_equal_span(dict,grid)
+    if isdyadic(length(grid))
         _unsafe_eval_element_in_dyadic_grid(dict, idxn, grid; options...)
     else
         _default_unsafe_eval_element_in_grid(dict, idxn, grid)
@@ -212,12 +200,12 @@ _unsafe_eval_element_in_dyadic_grid(dict::WaveletBasis{T,S}, idxn::WaveletIndex,
 
 
 function transform_from_grid(src, dest::WaveletBasis{T,S,Scl}, grid; options...) where {T,S}
-    @assert compatible_grid(dest, grid)
+    @assert iscompatible(dest, grid)
     scaling_transfrom_from_grid(src, dest, grid; options...)
 end
 
 function transform_from_grid(src, dest::WaveletBasis{T,S,Wvl}, grid; options...) where {T,S}
-    @assert compatible_grid(dest, grid)
+    @assert iscompatible(dest, grid)
     DiscreteWaveletTransform(dest)*scaling_transfrom_from_grid(src, dest, grid; options...)
 end
 
@@ -240,7 +228,7 @@ function _weight_operator(dest::WaveletBasis, dyadic_os)
 end
 
 function transform_to_grid(src::WaveletBasis, dest, grid; options...)
-    @assert compatible_grid(src, grid)
+    @assert iscompatible(src, grid)
     EvalOperator(src, dest, dyadic_length(grid); options...)
 end
 
@@ -348,7 +336,7 @@ grid_evaluation_operator(s::WaveletBasis, dgs::GridBasis, grid::DyadicPeriodicEq
 
 function grid_evaluation_operator(s::WaveletBasis, dgs::GridBasis, subgrid::AbstractSubGrid; options...)
     # We make no attempt if the set has no associated grid
-    if has_grid(s)
+    if hasinterpolation_grid(s)
         # Is the associated grid of the same type as the supergrid at hand?
         if typeof(grid(s)) == typeof(supergrid(subgrid))
             # It is: we can use the evaluation operator of the supergrid
@@ -383,18 +371,15 @@ function evaluation_matrix!(a::AbstractMatrix, dict::WaveletBasis, pts::DyadicPe
     a
 end
 
-Gram(b::WaveletBasis{T,S,Wvl}) where {S,T} = IdentityOperator(b, b)
-
 abstract type BiorthogonalWaveletBasis{T,S,K} <: WaveletBasis{T,S,K} end
 
-is_basis(b::BiorthogonalWaveletBasis) = true
+isbasis(b::BiorthogonalWaveletBasis) = true
 
 abstract type OrthogonalWaveletBasis{T,S,K} <: BiorthogonalWaveletBasis{T,S,K} end
 
-is_basis(b::OrthogonalWaveletBasis) = true
-is_orthogonal(b::OrthogonalWaveletBasis) = true
-
-wavelet_dual(w::OrthogonalWaveletBasis) = w
+isbasis(b::OrthogonalWaveletBasis) = true
+isorthogonal(b::OrthogonalWaveletBasis, ::FourierMeasure) = true
+isorthonormal(b::OrthogonalWaveletBasis, ::FourierMeasure) = true
 
 
 struct DaubechiesWaveletBasis{P,T,S,K} <: OrthogonalWaveletBasis{T,S,K}
@@ -417,12 +402,12 @@ DaubechiesWaveletBasis(P::Int, L::Int, ::Type{T} = Float64) where {T} =
 DaubechiesScalingBasis(P::Int, L::Int, ::Type{T} = Float64) where {T} =
     DaubechiesWaveletBasis{P,T,Prl,Scl}(DaubechiesWavelet{P,T}(), L)
 
-dict_promote_domaintype(b::DaubechiesWaveletBasis{P,T,SIDE,KIND}, ::Type{S}) where {P,T,S,SIDE,KIND} =
+promote_domaintype(b::DaubechiesWaveletBasis{P,T,SIDE,KIND}, ::Type{S}) where {P,T,S,SIDE,KIND} =
     DaubechiesWaveletBasis{P,promote_type(T,S),SIDE,KIND}(DaubechiesWavelet{P,promote_type(T,S)}(), dyadic_length(b))
 
 instantiate(::Type{DaubechiesWaveletBasis}, n, ::Type{T}) where {T} = DaubechiesWaveletBasis(3, approx_length(n), T)
 
-is_compatible(src1::DaubechiesWaveletBasis{P,T1,S1,K1}, src2::DaubechiesWaveletBasis{P,T2,S2,K2}) where {P,T1,T2,S1,S2,K1,K2} = true
+iscompatible(src1::DaubechiesWaveletBasis{P,T1,S1,K1}, src2::DaubechiesWaveletBasis{P,T2,S2,K2}) where {P,T1,T2,S1,S2,K1,K2} = true
 
 # Note no check on existence of CDFXY is present.
 struct CDFWaveletBasis{P,Q,T,S,K} <: BiorthogonalWaveletBasis{T,S,K}
@@ -445,15 +430,13 @@ ScalingBasis(dict::CDFWaveletBasis{P,Q,T,S,K}) where {P,Q,T,S,K} =
 WaveletBasis(dict::CDFWaveletBasis{P,Q,T,S,K}) where {P,Q,T,S,K} =
     CDFWaveletBasis{P,Q,T,S,Wvl}(dict.w, dict.L)
 
-dict_promote_domaintype(b::CDFWaveletBasis{P,Q,T,SIDE,KIND}, ::Type{S}) where {P,Q,T,S,SIDE,KIND} =
+promote_domaintype(b::CDFWaveletBasis{P,Q,T,SIDE,KIND}, ::Type{S}) where {P,Q,T,S,SIDE,KIND} =
     CDFWaveletBasis{P,Q,promote_type(T,S),SIDE,KIND}(CDFWavelet{P,Q,promote_type(T,S)}(), dyadic_length(b))
 
 instantiate(::Type{CDFWaveletBasis}, n, ::Type{T}) where {T} = CDFWaveletBasis(2, 4, approx_length(n), T)
 
-is_compatible(src1::CDFWaveletBasis{P,Q,T1,S1,K1}, src2::CDFWaveletBasis{P,Q,T2,S2,K2}) where {P,Q,T1,T2,S1,S2,K1,K2} = true
+iscompatible(src1::CDFWaveletBasis{P,Q,T1,S1,K1}, src2::CDFWaveletBasis{P,Q,T2,S2,K2}) where {P,Q,T1,T2,S1,S2,K1,K2} = true
 
-wavelet_dual(w::CDFWaveletBasis{P,Q,T,S,K}) where {P,Q,T,S,K} =
-    CDFWaveletBasis{P,Q,T,inv(S),K}(CDFWavelet{P,Q,T}(),dyadic_length(w))
 
 @recipe function f(F::WaveletBasis; plot_complex = false, n=200)
     legend --> false
@@ -472,19 +455,19 @@ plotgrid(b::WaveletBasis, n) = DyadicPeriodicEquispacedGrid(round(Int,log2(n)), 
 """
 A `DWTSamplingOperator` is an operator that maps a function to scaling coefficients.
 """
-struct DWTSamplingOperator <: AbstractSamplingOperator
-    sampler :: GridSamplingOperator
+struct DWTSamplingOperator <: SamplingOperator
+    sampler :: GridSampling
     weight  :: DictionaryOperator
     scratch :: Array
 
 	# An inner constructor to enforce that the operators match
-	function DWTSamplingOperator(sampler::GridSamplingOperator, weight::DictionaryOperator{ELT}) where {ELT}
+	function DWTSamplingOperator(sampler::GridSampling, weight::DictionaryOperator{ELT}) where {ELT}
         @assert real(ELT) == eltype(eltype(grid(sampler)))
         @assert size(weight, 2) == length(grid(sampler))
 		new(sampler, weight, zeros(src(weight)))
     end
 end
-using WaveletsCopy.DWT: quad_sf_weights
+using WaveletsEvaluation.DWT: quad_sf_weights
 Base.convert(::Type{OP}, dwt::DWTSamplingOperator) where {OP<:DictionaryOperator} = dwt.weight
 Base.promote_rule(::Type{OP}, ::DWTSamplingOperator) where{OP<:DictionaryOperator} = OP
 
@@ -493,7 +476,7 @@ A `WeightOperator` is an operator that maps function values to scaling coefficie
 """
 function WeightOperator(basis::WaveletBasis, oversampling::Int=1, recursion::Int=0)
     wav = wavelet(basis)
-    @assert coeftype(basis) == eltype(wav)
+    @assert coefficienttype(basis) == eltype(wav)
     WeightOperator(wav, oversampling, dyadic_length(basis), recursion)
 end
 
@@ -504,9 +487,9 @@ function WeightOperator(wav::DiscreteWavelet{T}, oversampling::Int, j::Int, d::I
     w .= w ./ sqrt(T(1<<j))
     src_size = 1<<(d+j+oversampling>>1)
     step = 1<<(d+oversampling>>1)
-    os = mod(step*Sequences.offset(filter(Dual, scaling, wav))-1, src_size)+1
+    os = mod(step*InfiniteVectors.offset(filter(Dual, scaling, wav))-1, src_size)+1
     try
-        HorizontalBandedOperator(gridbasis(DyadicPeriodicEquispacedGrid(d+j+oversampling>>1), T), ScalingBasis(wav, j) , w, step, os)
+        HorizontalBandedOperator(GridBasis(DyadicPeriodicEquispacedGrid(1<<(d+j+oversampling>>1), UnitInterval{T}())), ScalingBasis(wav, j) , w, step, os)
     catch y
         if isa(y, AssertionError)
             error("Support of dual wavelet basis exceeds the width of the domain. Try more elements in your basis.")
@@ -518,70 +501,18 @@ end
 
 function DWTSamplingOperator(dict::Dictionary, oversampling::Int=1, recursion::Int=0)
     weight = WeightOperator(dict, oversampling, recursion)
-    sampler = GridSamplingOperator(gridbasis(dwt_oversampled_grid(dict, oversampling, recursion)))
+    sampler = GridSampling(GridBasis(dwt_oversampled_grid(dict, oversampling, recursion)))
     DWTSamplingOperator(sampler, weight)
 end
 
 dwt_oversampled_grid(dict::Dictionary, oversampling::Int, recursion::Int) =
-    oversampled_grid(dict, 1<<(recursion+oversampling>>1))
+    extend(interpolation_grid(dict), 1<<(recursion+oversampling>>1))
 
 src_space(op::DWTSamplingOperator) = src_space(op.sampler)
 dest(op::DWTSamplingOperator) = dest(op.weight)
 
 apply(op::DWTSamplingOperator, f) = apply!(zeros(dest(op)), op, f)
 apply!(result, op::DWTSamplingOperator, f) = apply!(op.weight, result, apply!(op.scratch, op.sampler, f))
-
-##################
-# Platform
-##################
-
-# 1D generators
-primal_scaling_generator(wavelet::DiscreteWavelet) = n->ScalingBasis(wavelet,n)
-dual_scaling_generator(wavelet::DiscreteWavelet) = n->ScalingBasis(wavelet,n, Dul)
-
-# ND generators
-primal_scaling_generator(wav1::DiscreteWavelet, wav2::DiscreteWavelet, wav::DiscreteWavelet...) = primal_scaling_generator([wav1, wav2, wav...])
-
-primal_scaling_generator(wav::AbstractVector{T}) where {T<:DiscreteWavelet} = tensor_generator(promote_eltype(map(eltype, wav)...), map(w->primal_scaling_generator(w), wav)...)
-
-dual_scaling_generator(wav1::DiscreteWavelet, wav2::DiscreteWavelet, wav::DiscreteWavelet...) = dual_scaling_generator([wav1, wav2, wav...])
-
-dual_scaling_generator(wav::AbstractVector{T}) where {T<:DiscreteWavelet} = tensor_generator(promote_eltype(map(eltype, wav)...), map(w->dual_scaling_generator(w), wav)...)
-# Sampler
-scaling_sampler(primal, oversampling::Int) =
-    n->(
-        basis = primal(n .+ Int(log2(oversampling)));
-        GridSamplingOperator(gridbasis(grid(basis), coeftype(basis)));
-    )
-
-dual_scaling_sampler(primal, oversampling) =
-    n -> (
-        dyadic_os = Int(log2(oversampling));
-        basis = primal(n .+ dyadic_os);
-        W = _weight_operator(primal(n), dyadic_os);
-        sampler = GridSamplingOperator(gridbasis(grid(basis)));
-        DWTSamplingOperator(sampler, W);
-    )
-
-# params
-scaling_param(init::Int) = SteppingSequence(init)
-
-scaling_param(init::AbstractVector{Int}) = TensorSequence([SteppingSequence(i) for i in init])
-
-# Platform
-function scaling_platform(init::Union{Int,AbstractVector{Int}}, wav::Union{W,AbstractVector{W}}, oversampling::Int) where {W<:DiscreteWavelet}
-    @assert isdyadic(oversampling)
-	primal = primal_scaling_generator(wav)
-	dual = dual_scaling_generator(wav)
-	sampler = scaling_sampler(primal, oversampling)
-    # dual_sampler = dual_scaling_sampler(wav, oversampling)
-    dual_sampler = dual_scaling_sampler(primal, oversampling)
-	params = scaling_param(init)
-	GenericPlatform(primal = primal, dual = dual, sampler = sampler, dual_sampler=dual_sampler,
-		params = params, name = "Scaling functions")
-end
-
-Zt(dual::WaveletBasis, dual_sampler::DWTSamplingOperator; options...) = DictionaryOperator(dual_sampler)
 
 ##################
 # Tensor methods
@@ -591,24 +522,23 @@ const WaveletTensorDict3d = TensorProductDict{3,Tuple{B1,B2,B3}} where {B1<:Wave
 const WaveletTensorDict4d = TensorProductDict{4,Tuple{B1,B2,B3,B4}} where {B1<:WaveletBasis,B2<:WaveletBasis,B3<:WaveletBasis,B4<:WaveletBasis}
 const WaveletTensorDict = Union{TensorProductDict{N,NTuple{N,B}} where {N,B<:WaveletBasis},WaveletTensorDict2d,WaveletTensorDict3d,WaveletTensorDict4d}
 
-wavelet_dual(dict::WaveletTensorDict) =
-    tensorproduct([wavelet_dual(d) for d in elements(dict)])
 WeightOperator(dict::WaveletTensorDict, oversampling::Vector{Int}, recursion::Vector{Int}) =
     TensorProductOperator([WeightOperator(di, osi, reci) for (di, osi, reci) in zip(elements(dict), oversampling, recursion)]...)
 _weight_operator(dict::WaveletTensorDict, dyadic_os) =
     TensorProductOperator([_weight_operator(di, dyadic_os) for di in elements(dict)]...)
 grid_evaluation_operator(s::WaveletTensorDict, dgs::GridBasis, grid::AbstractSubGrid; options...) =
-    restriction_operator(gridbasis(supergrid(grid), coeftype(s)), gridbasis(grid, coeftype(s)))*grid_evaluation_operator(s, gridbasis(supergrid(grid), coeftype(s)), supergrid(grid))
+    restriction_operator(gridbasis(supergrid(grid), coefficienttype(s)), gridbasis(grid, coefficienttype(s)))*grid_evaluation_operator(s, gridbasis(supergrid(grid), coefficienttype(s)), supergrid(grid))
 grid_evaluation_operator(s::WaveletTensorDict, dgs::GridBasis, grid::ProductGrid; options...) =
-    TensorProductOperator([grid_evaluation_operator(dict, gridbasis(g, coeftype(s)), g) for (dict, g) in zip(elements(s), elements(grid))]...)
-Zt(dual::WaveletTensorDict, dual_sampler::DWTSamplingOperator; options...) = convert(DictionaryOperator,dual_sampler)
+    TensorProductOperator([grid_evaluation_operator(dict, gridbasis(g, coefficienttype(s)), g) for (dict, g) in zip(elements(s), elements(grid))]...)
 
+export wavelet_dual
+"""
+    wavelet_dual(dict::WaveletBasis)
 
-
-
-
-wavelet_dual(dict::TensorProductDict) =
-    tensorproduct([wavelet_dual(d) for d in elements(dict)])
-
+    Create a similar wavelet basis, but replacing the wavelet with its biorthogonal dual
+"""
+wavelet_dual(w::OrthogonalWaveletBasis) = w
+wavelet_dual(w::CDFWaveletBasis{P,Q,T,S,K}) where {P,Q,T,S,K} =
+    CDFWaveletBasis{P,Q,T,inv(S),K}(CDFWavelet{P,Q,T}(),dyadic_length(w))
 
 end
