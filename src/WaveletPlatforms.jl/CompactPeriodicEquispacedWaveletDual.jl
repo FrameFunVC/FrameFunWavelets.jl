@@ -2,6 +2,7 @@ module CompactPeriodicEquispacedWaveletDual
 
 
 using ....FrameFunWavelets.WaveletBases, FrameFun.BasisFunctions
+using ....FrameFunWavelets.DyadicPeriodicEquispacedGrids
 
 using FrameFun.BasisFunctions: unsafe_matrix
 using ....FrameFunWavelets.WaveletBases: GenericPeriodicEquispacedTranslates, isdyadic, dyadic_length
@@ -9,7 +10,7 @@ using WaveletsEvaluation.DWT: Scl, Wvl, Prl, evaluate_in_dyadic_points, scaling
 using InfiniteVectors: sublength, CompactInfiniteVector
 
 import BSplineExtension.BSplinePlatforms.CompactPeriodicEquispacedTranslatesDuals: CompactPeriodicEquispacedTranslatesDual, signal
-
+import FrameFun.BasisFunctions: grid_evaluation_operator
 
 compact_wavelet_dual(dict::WaveletBasis{T,S,Scl}, m) where {T,S} =
     CompactPeriodicEquispacedTranslatesDual(dict, m)
@@ -51,5 +52,8 @@ function signal(dict::CDFWaveletBasis{P,Q,T,Prl,Scl}, m::Int) where {P,Q,T}
     end
     CompactInfiniteVector(truncatedarray, os)
 end
+
+grid_evaluation_operator(dict::CompactPeriodicEquispacedTranslatesDual, gb::GridBasis, grid::DyadicPeriodicEquispacedGrid; options...) =
+    grid_evaluation_operator(dict, gb, PeriodicEquispacedGrid(grid))
 
 end

@@ -13,6 +13,7 @@ import FrameFun.FrameFunInterface: correct_sampling_parameter, SamplingStrategy,
 abstract type AbstractWaveletPlatform{T,S} <: BasisPlatform end
 
 SolverStyle(p::AbstractWaveletPlatform, ::SamplingStyle) = DualStyle()
+SamplingStyle(::AbstractWaveletPlatform) = OversamplingStyle()
 correct_sampling_parameter(::SamplingStrategy, ::AbstractWaveletPlatform, param, L; options...) = error()
 correct_sampling_parameter(::SamplingStrategy, ::AbstractWaveletPlatform, param::Int, L::Int; options...) =
     (round(Int, 1<<round(Int,log2(L/param))) * param)

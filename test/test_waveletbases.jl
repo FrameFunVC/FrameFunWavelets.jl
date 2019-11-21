@@ -5,6 +5,34 @@ using Test, FrameFun.BasisFunctions, FrameFun.BasisFunctions.Test, FrameFunWavel
 using WaveletsEvaluation.DWT: quad_trap, quad_sf, quad_sf_weights, quad_sf_N, quad_trap_N
 using WaveletsEvaluation.DWT: wavelet, Dual, scaling, db3,  db4, Primal, Prl, value
 
+@testset "DWT, iDWT" begin
+    for dict in (CDFWaveletBasis(4,2,5),CDFWaveletBasis(4,4,10),DaubechiesWaveletBasis(3,5))
+
+        DWT1 = DiscreteWaveletTransform(dict)
+        iDWT1 = InverseDiscreteWaveletTransform(dict)
+        DWT2 = DiscreteWaveletTransform(wavelet_dual(dict))
+        iDWT2 = InverseDiscreteWaveletTransform(wavelet_dual(dict))
+
+
+        @test inv(iDWT1)≈DWT1
+        @test inv(DWT1)≈iDWT1
+        @test inv(iDWT2)≈DWT2
+        @test inv(DWT2)≈iDWT2
+        @test iDWT1'≈DWT2
+        @test iDWT2'≈DWT1
+        @test DWT1'≈iDWT2
+        @test DWT2'≈iDWT1
+
+        @test inv(Matrix(iDWT1))≈Matrix(DWT1)
+        @test inv(Matrix(DWT1))≈Matrix(iDWT1)
+        @test inv(Matrix(iDWT2))≈Matrix(DWT2)
+        @test inv(Matrix(DWT2))≈Matrix(iDWT2)
+        @test Matrix(iDWT1)'≈Matrix(DWT2)
+        @test Matrix(iDWT2)'≈Matrix(DWT1)
+        @test Matrix(DWT1)'≈Matrix(iDWT2)
+        @test Matrix(DWT2)'≈Matrix(iDWT1)
+    end
+end
 
 @testset "wavelet quadrature" begin
     M1 = 5; M2 = 10; J = 3
@@ -102,9 +130,9 @@ end
     g = interpolation_grid(dict)
     @test g isa DyadicPeriodicEquispacedGrid
     op = evaluation_operator(dict, g)
-    @test op isa DWTEvalOperator
+    @test element(op,1) isa InverseDiscreteWaveletTransform
     op = evaluation_operator(dict, PeriodicEquispacedGrid(interpolation_grid(dict)))
-    @test op isa DWTEvalOperator
+    @test element(op,1) isa InverseDiscreteWaveletTransform
 
     dict = CDFWaveletBasis(2,2,10)
     g = interpolation_grid(dict)

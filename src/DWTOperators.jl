@@ -54,11 +54,14 @@ function mul!(dest::AbstractVector{T}, op::iDWTMatrix{T}, src::AbstractVector{T}
     idwt!(dest, src, op.fb, perbound, op.j, op.scratch)
 end
 
+inv(A::DWTMatrix{T,W,S}) where {T,W,S} = iDWTMatrix(W(), S(), A.j)
+inv(A::iDWTMatrix{T,W,S}) where {T,W,S} = DWTMatrix(W(), S(), A.j)
 
-for op in (:inv, :adjoint, :transpose)
-    @eval $op(A::DWTMatrix{T,W,S}) where {T,W,S} = iDWTMatrix(W(), S(), A.j)
-    @eval $op(A::iDWTMatrix{T,W,S}) where {T,W,S} = DWTMatrix(W(), S(), A.j)
+for op in (:transpose,:adjoint)
+    @eval $op(A::DWTMatrix{T,W,S}) where {T,W,S} = iDWTMatrix(W(), inv(S()), A.j)
+    @eval $op(A::iDWTMatrix{T,W,S}) where {T,W,S} = DWTMatrix(W(), inv(S()), A.j)
 end
+
 
 """
     struct DWTEvalMatrix{T} <: AbstractMatrix{T}

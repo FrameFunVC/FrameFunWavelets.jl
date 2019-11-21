@@ -157,8 +157,10 @@ DiscreteWaveletTransform(dict::WaveletBasis{T,S,Wvl}) where {T,S} =
 grid_evaluation_operator(s::WaveletBasis, dgs::GridBasis, grid::AbstractGrid; options...) =
     error("No algorithm available to evaluate $(typeof(s)) in $(typeof(grid))")
 
+# grid_evaluation_operator(dict::WaveletBasis{T,S,Wvl}, dgs::GridBasis, grid::DyadicPeriodicEquispacedGrid; options...) where {T,S} =
+#     DWTEvalOperator(dict, dgs, wavelet(dict), side(dict), dyadic_length(dict), dyadic_length(grid))
 grid_evaluation_operator(dict::WaveletBasis{T,S,Wvl}, dgs::GridBasis, grid::DyadicPeriodicEquispacedGrid; options...) where {T,S} =
-    DWTEvalOperator(dict, dgs, wavelet(dict), side(dict), dyadic_length(dict), dyadic_length(grid))
+    grid_evaluation_operator(scalingbasis(dict), dgs, grid; options...)*InverseDiscreteWaveletTransform(dict)
 
 function grid_evaluation_operator(dict::WaveletBasis{T,S,Scl}, dgs::GridBasis, grid::DyadicPeriodicEquispacedGrid; options...) where {T,S}
     d = dyadic_length(grid)

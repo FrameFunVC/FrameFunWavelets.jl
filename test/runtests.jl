@@ -8,6 +8,10 @@ end
     include("test_waveletbases.jl")
 end
 
+@testset "WaveletBasesPlatforms" begin
+    include("test_waveletbasesplatforms.jl")
+end
+
 @testset "WaveletPlatforms" begin
     include("test_waveletplatforms.jl")
 end
