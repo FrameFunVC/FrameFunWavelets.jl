@@ -4,24 +4,21 @@ using Reexport
 
 include("DWTOperators.jl")
 @reexport using .DWTOperators
-
 import .DWTOperators: DiscreteWaveletTransform, InverseDiscreteWaveletTransform
 
-
-using FrameFun.BasisFunctions, GridArrays, DomainSets, ..DyadicPeriodicEquispacedGrids,
-    WaveletsEvaluation, RecipesBase, InfiniteVectors
+using BasisFunctions, GridArrays, DomainSets, ..DyadicPeriodicEquispacedGrids,
+    WaveletsEvaluation, RecipesBase, InfiniteVectors, CompactTranslatesDict
 
 using WaveletsEvaluation.DWT: Side, Kind, Prl, Dul, Scl, Wvl, DiscreteWavelet, WaveletIndex,
     Filterbank, WaveletBoundary, SFilterBank, wavelet_index, scaling_indices, scaling_index,
     evaluate_periodic_in_dyadic_points!, dwt!, idwt!, offset, dyadicpointsofrecursion,
     evaluate_periodic_scaling_basis_in_dyadic_points, _evaluate_periodic_scaling_basis_in_dyadic_points!
-using CompactTranslatesDict: PeriodicInterval, GenericPeriodicEquispacedTranslates, _get_array_offset
-using FrameFun.BasisFunctions: SamplingOperator, op_eltype
+using BasisFunctions: SamplingOperator, op_eltype
 using CardinalBSplines: evaluate_BSpline
 
 import Base: checkbounds, convert, promote_rule
 import LinearAlgebra: mul!
-import FrameFun.BasisFunctions: length, size, native_index, name, subdict, hasextension,
+import BasisFunctions: length, size, native_index, name, subdict, hasextension,
     approx_length, resize, hasinterpolationgrid, hastransform, iscompatible, hasgrid_transform,
     support, measure, period, interpolation_grid, ordering, linear_index, extension_size,
     unsafe_eval_element, unsafe_eval_element1,
@@ -29,7 +26,8 @@ import FrameFun.BasisFunctions: length, size, native_index, name, subdict, hasex
     promote_domaintype, isbasis, isorthogonal, isorthonormal, isbiorthogonal, evaluation_matrix!,
     ArrayOperator, symbol, _default_unsafe_eval_element_in_grid
 import ..DyadicPeriodicEquispacedGrids: dyadic_length
-import WaveletsEvaluation.DWT: isdyadic, value, wavelet, kind
+import WaveletsEvaluation.DWT: value, wavelet, kind
+import CompactTranslatesDict: GenericPeriodicEquispacedTranslates
 
 
 export WaveletBasis

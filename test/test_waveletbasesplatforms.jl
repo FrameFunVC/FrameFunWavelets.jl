@@ -91,7 +91,7 @@ end
 end
 
 
-using FrameFunWavelets.WaveletBasesPlatforms.CompactPeriodicEquispacedWaveletDual: signal
+using CompactTranslatesDict.CompactPeriodicEquispacedTranslatesDuals: signal
 @testset "signal" begin
     N = 4
     P = CDFPlatform(2,2)
@@ -106,7 +106,7 @@ using FrameFunWavelets.WaveletBasesPlatforms.CompactPeriodicEquispacedWaveletDua
 end
 
 using FrameFunWavelets, FrameFun, Test, LinearAlgebra, InfiniteVectors
-using BSplineExtension.BSplinePlatforms.CompactPeriodicEquispacedTranslatesDuals: CompactPeriodicEquispacedTranslatesDual, signal
+using CompactTranslatesDict.CompactPeriodicEquispacedTranslatesDuals: CompactPeriodicEquispacedTranslatesDual, signal
 using FrameFunWavelets.WaveletPlatforms.WaveletBasesPlatforms.CompactPeriodicEquispacedWaveletDual: compact_wavelet_dual
 @testset "dual dictionary" begin
     N = 4
@@ -156,6 +156,35 @@ using FrameFunWavelets.WaveletPlatforms.WaveletBasesPlatforms.CompactPeriodicEqu
     @test Matrix(S1.A'S2.A)≈I
     @test Matrix(iDWT1)'*Matrix(iDWT2)≈I
     @test Matrix(E1)'Matrix(E2)≈I
+end
+
+@testset "AZ_Zt" begin
+    P = DaubechiesPlatform(2)
+    N = 4
+    op = AZ_Z(P,N)
+    @test element(op,1) isa InverseDiscreteWaveletTransform
+    @test element(op,2) isa VerticalBandedOperator
+    op2 = AZ_Zt(P,N)
+
+    @test element(op2,length(elements(op))) isa DiscreteWaveletTransform
+    @test element(op2,length(elements(op))-1) isa HorizontalBandedOperator
+    @test AZ_Zt(P,N)*AZ_A(P,N) ≈ IdentityOperator(dictionary(P,N))
+
+    P = CDFPlatform(4,4)
+    N = 4
+    g = sampling_grid(P,N)
+    dual_dict = dualdictionary(P,N,discretemeasure(g))
+    dict = dictionary(P,N)
+    g = sampling_grid(P,N)
+    Z = AZ_Z(P,N)
+    E = evaluation_operator(dual_dict, g)
+    @test Z≈E
+    A = AZ_A(P,N)
+    E = evaluation_operator(dict, g)
+    @test A≈E
+
+    @test Z'A ≈ IdentityOperator(dict)
+    @test AZ_Zt(P,N)*AZ_A(P,N) ≈ IdentityOperator(dict)
 end
 
 end

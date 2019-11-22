@@ -8,7 +8,7 @@ import Base: promote_eltype, ==, size
 import GridArrays: name, support, isperiodic, length, similargrid, hasextension,
     extend, resize, PeriodicEquispacedGrid, _extension_size, rescale
 
-
+export isdyadic
 isdyadic(n::Int) = n≈(2.0^round(log2(n)))
 export DyadicPeriodicEquispacedGrid
 """

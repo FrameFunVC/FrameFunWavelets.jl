@@ -4,7 +4,7 @@ authors = ["vincentcp"]
 version = "0.1.0"
 
 [deps]
-BSplineExtension = "0b21e58f-1780-5391-9880-11ae5a9ef91b"
+BasisFunctions = "4343a256-5453-507d-8aad-01a9d7189916"
 CardinalBSplines = "87d49508-7ad8-11e8-0eda-cb6920b58870"
 CompactTranslatesDict = "455b6770-8cd4-11e8-0457-dd6f5558b097"
 DomainSets = "5b8099bc-c8ec-5219-889f-1d9e522a28bf"
