@@ -6,7 +6,8 @@ using WaveletsEvaluation.DWT: quad_trap, quad_sf, quad_sf_weights, quad_sf_N, qu
 using WaveletsEvaluation.DWT: wavelet, Dual, scaling, db3,  db4, Primal, Prl, value
 
 @testset "DWT, iDWT" begin
-    for dict in (CDFWaveletBasis(4,2,5),CDFWaveletBasis(4,4,10),DaubechiesWaveletBasis(3,5))
+    for dict in (CDFWaveletBasis(4,2,5),CDFWaveletBasis(4,4,10),DaubechiesWaveletBasis(3,5),
+                    CDFWaveletBasis(4,2,5,Prl,Float64,false),CDFWaveletBasis(4,4,10,Prl,Float64,false),DaubechiesWaveletBasis(3,5,Float64,false))
 
         DWT1 = DiscreteWaveletTransform(dict)
         iDWT1 = InverseDiscreteWaveletTransform(dict)
@@ -124,28 +125,74 @@ end
         # t = transform_operator(tbasis, basis)
         # it = transform_operator(basis, tbasis)
         # @test norm((it*t*x-x))+1≈1
-    end
-
-    dict = DaubechiesWaveletBasis(2,10)
-    g = interpolation_grid(dict)
-    @test g isa DyadicPeriodicEquispacedGrid
-    op = evaluation_operator(dict, g)
-    @test element(op,1) isa InverseDiscreteWaveletTransform
-    op = evaluation_operator(dict, PeriodicEquispacedGrid(interpolation_grid(dict)))
-    @test element(op,1) isa InverseDiscreteWaveletTransform
-
-    dict = CDFWaveletBasis(2,2,10)
-    g = interpolation_grid(dict)
-    @test g isa DyadicPeriodicEquispacedGrid
-    op = evaluation_operator(dict, g)
-    @test element(op,1) isa InverseDiscreteWaveletTransform
-    @test element(op,2) isa VerticalBandedOperator
-    op = evaluation_operator(dict, PeriodicEquispacedGrid(interpolation_grid(dict)))
-    @test element(op,1) isa InverseDiscreteWaveletTransform
-    @test element(op,2) isa VerticalBandedOperator
 end
 
+dict = DaubechiesWaveletBasis(2,10)
+g = interpolation_grid(dict)
+@test g isa DyadicPeriodicEquispacedGrid
+op = evaluation_operator(dict, g)
+@test element(op,1) isa InverseDiscreteWaveletTransform
+op = evaluation_operator(dict, PeriodicEquispacedGrid(interpolation_grid(dict)))
+@test element(op,1) isa InverseDiscreteWaveletTransform
 
+dict = CDFWaveletBasis(2,2,10)
+g = interpolation_grid(dict)
+@test g isa DyadicPeriodicEquispacedGrid
+op = evaluation_operator(dict, g)
+@test element(op,1) isa InverseDiscreteWaveletTransform
+@test element(op,2) isa VerticalBandedOperator
+op = evaluation_operator(dict, PeriodicEquispacedGrid(interpolation_grid(dict)))
+@test element(op,1) isa InverseDiscreteWaveletTransform
+@test element(op,2) isa VerticalBandedOperator
+end
+
+@testset "Scaled wavelet basis" begin
+dict = DaubechiesWaveletBasis(2,5,Float64,false)
+DWT = DiscreteWaveletTransform(dict)
+iDWT = InverseDiscreteWaveletTransform(dict)
+
+inv(DWT)≈DWT
+Matrix(iDWT*iDWT')
+inv(iDWT)
+
+
+@test DWT*iDWT≈IdentityOperator(dict)
+dict2 = DaubechiesWaveletBasis(2,5,Float64,true)
+DWT2 = DiscreteWaveletTransform(dict2)
+iDWT2 = InverseDiscreteWaveletTransform(dict2)
+@test DWT2*iDWT2≈IdentityOperator(dict2)
+@test !(DWT≈DWT2)
+S1 = evaluation_operator(scalingbasis(dict),interpolation_grid(dict))
+S2 = evaluation_operator(scalingbasis(dict2),interpolation_grid(dict))
+@test S1.A.array*sqrt(32)≈S2.A.array
+W1 = evaluation_operator(dict,interpolation_grid(dict))
+W2 = evaluation_operator(dict2,interpolation_grid(dict))
+e = zeros(dict)
+e[1] = 1
+@test W1*e≈W2*e
+@test W1 ≈ S1*iDWT
+@test W2 ≈ S2*iDWT2
+
+dict = CDFWaveletBasis(2,4,5,Prl,Float64,false)
+DWT = DiscreteWaveletTransform(dict)
+iDWT = InverseDiscreteWaveletTransform(dict)
+@test DWT*iDWT≈IdentityOperator(dict)
+dict2 = CDFWaveletBasis(2,4,5,Prl,Float64,true)
+DWT2 = DiscreteWaveletTransform(dict2)
+iDWT2 = InverseDiscreteWaveletTransform(dict2)
+@test DWT2*iDWT2≈IdentityOperator(dict2)
+@test !(DWT≈DWT2)
+S1 = evaluation_operator(scalingbasis(dict),interpolation_grid(dict))
+S2 = evaluation_operator(scalingbasis(dict2),interpolation_grid(dict))
+@test S1.A.array*sqrt(32)≈S2.A.array
+W1 = evaluation_operator(dict,interpolation_grid(dict))
+W2 = evaluation_operator(dict2,interpolation_grid(dict))
+e = zeros(dict)
+e[1] = 1
+@test W1*e≈W2*e
+@test W1 ≈ S1*iDWT
+@test W2 ≈ S2*iDWT2
+end
 
 @testset "Plots" begin
     using Plots

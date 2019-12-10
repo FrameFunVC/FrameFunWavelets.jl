@@ -1,6 +1,7 @@
 module TestWaveletBasesPlatforms
 
 using Test, FrameFun, FrameFunWavelets, DomainSets, LinearAlgebra
+using InfiniteVectors: CompactPeriodicInfiniteVector
 using WaveletsEvaluation.DWT: CDFWavelet, DaubechiesWavelet, Dul, Wvl, Prl
 
 @testset "Constructors" begin
@@ -29,7 +30,7 @@ end
     @test SamplingStyle(P) == OversamplingStyle()
     @test dictionary(P,10) isa DaubechiesWaveletBasis
     @test sampling_grid(P,10;oversamplingfactor=1) == interpolation_grid(dictionary(P,10))
-    @test dualdictionary(P,10,FourierMeasure()) == dictionary(P,10)
+    @test dualdictionary(P,10,FourierMeasure()) == wavelet_dual(dictionary(P,10))
     @test element(AZ_A(P,5),1) isa InverseDiscreteWaveletTransform
 
     PP = ExtensionFramePlatform(P,0.0..0.49)
@@ -94,9 +95,9 @@ end
 using CompactTranslatesDict.CompactPeriodicEquispacedTranslatesDuals: signal
 @testset "signal" begin
     N = 4
-    P = CDFPlatform(2,2)
+    P = CDFPlatform(4,2)
     dict = dictionary(P,N)
-    @test evaluation_operator(scalingbasis(dict), PeriodicEquispacedGrid(2*length(dict),support(dict))).A[:,1]==signal(scalingbasis(dict), 2)[0:length(dict)*2-1]
+    @test evaluation_operator(scalingbasis(dict), PeriodicEquispacedGrid(2*length(dict),support(dict))).A[:,1]==CompactPeriodicInfiniteVector(signal(scalingbasis(dict), 2),2length(dict))[0:length(dict)*2-1]
 
     N = 4
     P = DaubechiesPlatform(2)
@@ -133,6 +134,7 @@ using FrameFunWavelets.WaveletPlatforms.WaveletBasesPlatforms.CompactPeriodicEqu
     E2 = evaluation_operator(dual_dict, PeriodicEquispacedGrid(g))
     S2 = element(E2,2)
     iDWT2 = element(E2,1)
+
 
     @test Matrix(S1.A'S2.A)≈I
     @test Matrix(iDWT1)'*Matrix(iDWT2)≈I

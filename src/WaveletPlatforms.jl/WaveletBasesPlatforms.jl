@@ -9,17 +9,25 @@ import FrameFun.Platforms: platform, dictionary, SolverStyle, measure, SamplingS
     dualdictionary, correctparamformat, unsafe_dictionary, Platform
 import FrameFun.FrameFunInterface: correct_sampling_parameter, SamplingStrategy, oversampling_grid
 
-
-abstract type AbstractWaveletPlatform{T,S} <: BasisPlatform end
+export AbstractWaveletPlatform
+abstract type AbstractWaveletPlatform{T,K,scaled} <: BasisPlatform end
 
 SolverStyle(p::AbstractWaveletPlatform, ::SamplingStyle) = DualStyle()
-SamplingStyle(::AbstractWaveletPlatform) = OversamplingStyle()
+SamplingStyle(::AbstractWaveletPlatform{T,K,false}) where {T,K} = OversamplingStyle()
+
 correct_sampling_parameter(::SamplingStrategy, ::AbstractWaveletPlatform, param, L; options...) = error()
 correct_sampling_parameter(::SamplingStrategy, ::AbstractWaveletPlatform, param::Int, L::Int; options...) =
     (round(Int, 1<<round(Int,log2(L/param))) * param)
 correctparamformat(::AbstractWaveletPlatform, ::Int) = true
 dualdictionary(platform::AbstractWaveletPlatform, param, measure::FourierMeasure; options...) =
     wavelet_dual(unsafe_dictionary(platform, param))
+
+export scalingplatform
+scalingplatform(P::AbstractWaveletPlatform) = platform(scalingbasis(dictionary(P,1)))
+scalingplatform(P::ProductPlatform) = ProductPlatform(map(scalingplatform, elements(P)))
+export waveletplatform
+waveletplatform(P::AbstractWaveletPlatform) = platform(waveletbasis(dictionary(P,1)))
+waveletplatform(P::ProductPlatform) = ProductPlatform(map(waveletplatform, elements(P)))
 
 function dualdictionary(platform::AbstractWaveletPlatform, param, measure::UniformDiracCombMeasure;
         options...)
@@ -42,38 +50,39 @@ function dualdictionary(platform::AbstractWaveletPlatform, param, measure::Unifo
 end
 
 export CDFPlatform
-struct CDFPlatform{P,Q,T,S<:Side,K<:Kind} <: AbstractWaveletPlatform{T,T}
+struct CDFPlatform{P,Q,T,S<:Side,K<:Kind,scaled} <: AbstractWaveletPlatform{T,K,scaled}
 end
 
-CDFPlatform(P::Int, Q::Int, ::Type{S}=Prl, ::Type{K}=Wvl) where {S<:Side,K<:Kind} =
-    CDFPlatform{P,Q,Float64,S,K}()
-CDFPlatform{T}(P::Int, Q::Int, ::Type{S}=Prl, ::Type{K}=Wvl) where {T,S<:Side,K<:Kind} =
-    CDFPlatform{P,Q,T,S,K}()
-Platform(w::CDFWavelet{P,Q,T}, ::Type{S}=Prl, ::Type{K}=Wvl) where {P,Q,T,S<:Side,K<:Kind} =
-    CDFPlatform{P,Q,T,S,K}()
+CDFPlatform(P::Int, Q::Int, ::Type{S}=Prl, ::Type{K}=Wvl, scaled::Bool=false) where {S<:Side,K<:Kind} =
+    CDFPlatform{P,Q,Float64,S,K,scaled}()
+CDFPlatform{T}(P::Int, Q::Int, ::Type{S}=Prl, ::Type{K}=Wvl, scaled::Bool=false) where {T,S<:Side,K<:Kind} =
+    CDFPlatform{P,Q,T,S,K,scaled}()
+Platform(w::CDFWavelet{P,Q,T}, ::Type{S}=Prl, ::Type{K}=Wvl, scaled::Bool=false) where {P,Q,T,S<:Side,K<:Kind} =
+    CDFPlatform{P,Q,T,S,K,scaled}()
 
-unsafe_dictionary(platform::CDFPlatform{P,Q,T,S,K}, param::Int) where {P,Q,T,S<:Side,K<:Kind} =
-    CDFWaveletBasis{P,Q,T,S,K}(CDFWavelet{P,Q,T}(),param)
-platform(::CDFWaveletBasis{P,Q,T,S,K}) where {P,Q,T,S,K} =
-    CDFPlatform{P,Q,T,S,K}()
+
+unsafe_dictionary(platform::CDFPlatform{P,Q,T,S,K,scaled}, param::Int) where {P,Q,T,S<:Side,K<:Kind,scaled} =
+    CDFWaveletBasis{P,Q,T,S,K,scaled}(CDFWavelet{P,Q,T}(),param)
+platform(::CDFWaveletBasis{P,Q,T,S,K,scaled}) where {P,Q,T,S,K,scaled} =
+    CDFPlatform{P,Q,T,S,K,scaled}()
 oversampling_grid(dict::CDFWaveletBasis, L) = PeriodicEquispacedGrid(L, support(dict))
 correct_sampling_parameter(::SamplingStrategy, ::CDFPlatform{P,Q,T,Prl,K}, param::Int, L::Int; options...)  where {P,Q,T,K} =
     (round(Int, L/(1<<param)) * (1<<param))
 
 export DaubechiesPlatform
-struct DaubechiesPlatform{P,T,K<:Kind} <: AbstractWaveletPlatform{T,T}
+struct DaubechiesPlatform{P,T,K<:Kind,scaled} <: AbstractWaveletPlatform{T,K,scaled}
 end
 
-DaubechiesPlatform(P::Int, ::Type{K}=Wvl) where {K} =
-    DaubechiesPlatform{P,Float64,K}()
-DaubechiesPlatform{T}(P::Int, ::Type{K}=Wvl) where {T,K} =
-    DaubechiesPlatform{P,T,K}()
-Platform(w::DaubechiesWavelet{P,T},::Type{K}=Wvl) where {P,T,K} =
-    DaubechiesPlatform{P,T,K}()
+DaubechiesPlatform(P::Int, ::Type{K}=Wvl, scaled::Bool=false) where {K} =
+    DaubechiesPlatform{P,Float64,K,scaled}()
+DaubechiesPlatform{T}(P::Int, ::Type{K}=Wvl, scaled::Bool=false) where {T,K} =
+    DaubechiesPlatform{P,T,K,scaled}()
+Platform(w::DaubechiesWavelet{P,T},::Type{K}=Wvl, scaled::Bool=false) where {P,T,K} =
+    DaubechiesPlatform{P,T,K,scaled}()
 
-unsafe_dictionary(platform::DaubechiesPlatform{P,T,K}, param::Int) where {P,T,K} =
-    DaubechiesWaveletBasis{P,T,Prl,K}(DaubechiesWavelet{P,T}(), param)
-platform(::DaubechiesWaveletBasis{P,T,S,K}) where {P,T,S,K} =
-    DaubechiesPlatform{P,T,K}()
+unsafe_dictionary(platform::DaubechiesPlatform{P,T,K,scaled}, param::Int) where {P,T,K,scaled} =
+    DaubechiesWaveletBasis{P,T,Prl,K,scaled}(DaubechiesWavelet{P,T}(), param)
+platform(::DaubechiesWaveletBasis{P,T,S,K,scaled}) where {P,T,S,K,scaled} =
+    DaubechiesPlatform{P,T,K,scaled}()
 
 end

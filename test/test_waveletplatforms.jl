@@ -55,7 +55,7 @@ using Test, FrameFunWavelets, FrameFun, DomainSets, LinearAlgebra
     @test myplungerank(P,5,1e-8) == 18
     @test myplungerank(P,6,1e-8) == 30
     @test myplungerank(P,7,1e-8) == 56
-    
+
     @test nnzcolumn(P,3,1e-8) == 8
     @test nnzcolumn(P,4,1e-8) == 16
     @test nnzcolumn(P,5,1e-8) == 31
@@ -75,11 +75,11 @@ using Test, FrameFunWavelets, FrameFun, DomainSets, LinearAlgebra
     @test myplungerank(P,6,1e-10) == 1
     @test myplungerank(P,7,1e-10) == 1
 
-    @test nnzcolumn(P,3,1e-10) == 7
+    @test nnzcolumn(P,3,1e-10) == 6
     @test nnzcolumn(P,4,1e-10) == 9
-    @test nnzcolumn(P,5,1e-10) == 11
+    @test nnzcolumn(P,5,1e-10) == 13
     @test nnzcolumn(P,6,1e-10) == 15
-    @test nnzcolumn(P,7,1e-10) == 19
+    @test nnzcolumn(P,7,1e-10) == 17
 
     @test nnzrow(P,3,1e-10) == 1
     @test nnzrow(P,4,1e-10) == 2
@@ -90,21 +90,21 @@ using Test, FrameFunWavelets, FrameFun, DomainSets, LinearAlgebra
     P = ExtensionFramePlatform(CDFPlatform(3,3),0.0..0.4)
     @test myplungerank(P,3,1e-10) == 3
     @test myplungerank(P,4,1e-10) == 3
-    @test myplungerank(P,5,1e-10) == 2
-    @test myplungerank(P,6,1e-10) == 3
+    @test myplungerank(P,5,1e-10) == 4
+    @test myplungerank(P,6,1e-10) == 4
     @test myplungerank(P,7,1e-10) == 3
 
     @test nnzcolumn(P,3,1e-10) == 8
     @test nnzcolumn(P,4,1e-10) == 16
-    @test nnzcolumn(P,5,1e-10) == 24
-    @test nnzcolumn(P,6,1e-10) == 35
-    @test nnzcolumn(P,7,1e-10) == 45
+    @test nnzcolumn(P,5,1e-10) == 26
+    @test nnzcolumn(P,6,1e-10) == 36
+    @test nnzcolumn(P,7,1e-10) == 44
 
-    @test nnzrow(P,3,1e-10) == 11
-    @test nnzrow(P,4,1e-10) == 12
-    @test nnzrow(P,5,1e-10) == 9
-    @test nnzrow(P,6,1e-10) == 13
-    @test nnzrow(P,7,1e-10) == 11
+    @test nnzrow(P,3,1e-10) == 12
+    @test nnzrow(P,4,1e-10) == 13
+    @test nnzrow(P,5,1e-10) == 15
+    @test nnzrow(P,6,1e-10) == 14
+    @test nnzrow(P,7,1e-10) == 12
 
     P = ExtensionFramePlatform(CDFPlatform(6,6),0.0..0.4)
     @test myplungerank(P,3,1e-8) == 6
@@ -116,8 +116,8 @@ using Test, FrameFunWavelets, FrameFun, DomainSets, LinearAlgebra
     @test nnzcolumn(P,3,1e-8) == 8
     @test nnzcolumn(P,4,1e-8) == 16
     @test nnzcolumn(P,5,1e-8) == 32
-    @test nnzcolumn(P,6,1e-8) == 54
-    @test nnzcolumn(P,7,1e-8) == 76
+    @test nnzcolumn(P,6,1e-8) == 53
+    @test nnzcolumn(P,7,1e-8) == 74
 
     @test nnzrow(P,3,1e-8) == 17
     @test nnzrow(P,4,1e-8) == 32
@@ -125,6 +125,7 @@ using Test, FrameFunWavelets, FrameFun, DomainSets, LinearAlgebra
     @test nnzrow(P,6,1e-8) == 28
     @test nnzrow(P,7,1e-8) == 31
 end
+
 
 
 end

@@ -11,4 +11,6 @@ include("WaveletBases.jl")
 include("WaveletPlatforms.jl/WaveletPlatforms.jl")
 @reexport using .WaveletPlatforms
 
+include("CompactAZ.jl")
+@reexport using .CompactAZ
 end

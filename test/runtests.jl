@@ -15,3 +15,7 @@ end
 @testset "WaveletPlatforms" begin
     include("test_waveletplatforms.jl")
 end
+
+@testset "Compact AZ" begin
+    include("test_compactaz.jl")
+end
