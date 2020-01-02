@@ -241,10 +241,7 @@ end
     err = [1e-1,1e-4,1e-6,1e-1,2e-1]
     for (P,N,m,f,e) in zip((P1,P2,P3,P4,P5), (N1,N2,N3,N4,N5), (m1,m2,m3,m4,m5), (f1,f2,f3,f4,f5), err)
         F,A,b,c,_ = approximate(f, P, N; L=m.*(1 .<< N),solverstyle=SparseAZStyle())
-        @show norm(A*c-b)
-        # @test norm(A*c-b) < e
-        F,A,b,c,_ = approximate(f, P, N; L=m.*(1 .<< N),solverstyle=DirectStyle(),directsolver=:qr)
-        @show norm(A*c-b)
+        @test norm(A*c-b) < e
     end
 end
 

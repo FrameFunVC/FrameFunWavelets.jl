@@ -1,6 +1,7 @@
 module DWTOperators
 
-using FrameFun.BasisFunctions
+
+using FrameFun.BasisFunctions, SparseArrays
 
 using WaveletsEvaluation.DWT: Filterbank, Side, DiscreteWavelet, scaling,
     evaluate_in_dyadic_points, _evaluate_periodic_scaling_basis_in_dyadic_points!,
@@ -112,65 +113,5 @@ ArrayOperator(A::iDWTMatrix, src::Dictionary, dest::Dictionary) =
 symbol(op::InverseDiscreteWaveletTransform) = "iDWT"
 
 Matrix(op::InverseDiscreteWaveletTransform) = default_matrix(op)
-
-
-
-# """
-#     struct DWTEvalMatrix{T} <: AbstractMatrix{T}
-#
-# Matrix that represents the evaluation matrix of a periodic wavelet
-# """
-# struct DWTEvalMatrix{T,W<:DiscreteWavelet,S<:Side} <: AbstractMatrix{T}
-#     idwt::iDWTMatrix{T,W,S}
-#     s::S
-#     w::W
-#     j::Int
-#     d::Int
-#
-#     f::Vector{T}
-#     f_scaled::Vector{T}
-#     coefscopy::Vector{T}
-#
-#     function DWTEvalMatrix(wavelet::DiscreteWavelet{T}, side::Side, j::Int, d::Int) where T
-#         f = evaluate_in_dyadic_points(side, scaling, wavelet, j, 0, d)
-#         f_scaled = similar(f)
-#         coefscopy = zeros(T,1<<j)
-#         new{T,typeof(wavelet),typeof(side)}(iDWTMatrix(wavelet, side, j), side, wavelet, j, d, f, f_scaled, coefscopy)
-#     end
-# end
-#
-# size(A::DWTEvalMatrix) = (1<<A.d, 1<<A.j)
-# function mul!(dest::AbstractVector{T}, op::DWTEvalMatrix{T}, src::AbstractVector{T}) where T
-#     mul!(op.coefscopy, op.idwt, src)
-#     _evaluate_periodic_scaling_basis_in_dyadic_points!(dest, op.f, op.s, op.w, op.coefscopy, op.j, op.d, op.f_scaled)
-#     dest
-# end
-
-
-# export DWTEvalOperator
-# """
-#     struct DWTEvalOperator{T} <: ArrayOperator{T}
-#
-# Transformation of wavelet coefficients to function values.
-# """
-# struct DWTEvalOperator{T,W,S} <: ArrayOperator{T}
-#     A   ::  DWTEvalMatrix{T,W,S}
-#     src ::  Dictionary
-#     dest::  Dictionary
-# end
-#
-# function DWTEvalOperator(src::Dictionary, dest::Dictionary, wavelet::DiscreteWavelet, side::Side, j::Int, d::Int)
-#     @assert length(src) == (1<<j)
-#     @assert length(dest) == (1<<d)
-#     DWTEvalOperator(DWTEvalMatrix(wavelet, side, j, d), src, dest)
-# end
-#
-# ArrayOperator(A::DWTEvalMatrix, src::Dictionary, dest::Dictionary) =
-#     DWTEvalOperator(A, src, dest)
-#
-# symbol(op::DWTEvalOperator) = "DWT_A"
-#
-# Matrix(op::DWTEvalOperator) = default_matrix(op)
-#
 
 end
