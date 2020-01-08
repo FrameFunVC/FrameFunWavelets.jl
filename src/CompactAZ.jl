@@ -10,18 +10,39 @@ using ...WaveletPlatforms, ...WaveletBases, FrameFun, BasisFunctions, FrameFunTr
 using WaveletsEvaluation.DWT: Wvl,Scl
 using FrameFunTranslates.CompactAZ.CompactFrameFunExtension: _nonzero_coefficients, _nonzero_pointsindices, ef_true_nonzero_reducedAZ_AAZAreductionsolver, ef_true_nonzero_reducedAAZAoperator
 import FrameFunTranslates.CompactAZ.CompactFrameFunExtension: ef_nonzero_coefficients, compactinfinitevectors, ef_nonzero_pointsindices,
-    ef_sparse_reducedAAZAoperator, ef_sparseAZ_AAZAreductionsolver, ef_reducedAZ_AAZAreductionsolver, ef_reducedAAZAoperator
+    ef_sparse_reducedAAZAoperator, ef_sparseAZ_AAZAreductionsolver, ef_reducedAZ_AAZAreductionsolver, ef_reducedAAZAoperator, ef_AAZA_nonzero_row_indexset
 
+
+const WE_L = nonzero_coefficients
+const WE_M = AAZA_nonzero_row_indexset
 
 function ef_nonzero_coefficients(samplingstyle::SamplingStyle, platform::ExtensionFramePlatform, param, platforms::Tuple{Vararg{<:AbstractWaveletPlatform{<:Number,Wvl}}}, L; options...)
     os_grid = haskey(options, :os_grid) ? options[:os_grid] : oversampling_grid(samplingstyle, platform, param, L; options...)
     q = div.(L, 1 .<< param)
-    spline_nonzero_coeffs = _nonzero_coefficients((compactsupport(samplingstyle, scalingplatform(platform.basisplatform), param,
+    WE_K = _nonzero_coefficients((compactsupport(samplingstyle, scalingplatform(platform.basisplatform), param,
         map(scalingplatform,platforms), supergrid(os_grid); options...)), q, mask(os_grid))
+
+
     op = InverseDiscreteWaveletTransform(dictionary(platform.basisplatform, param))'
     a = zeros(src(op))
-    a[spline_nonzero_coeffs].=NaN
+    a[WE_K].=NaN
     findall(isnan.(op*a))
+end
+
+function ef_nonzero_coefficients(samplingstyle::SamplingStyle, platform::ExtensionFramePlatform, param, platforms::Tuple{Vararg{<:AbstractWaveletPlatform{<:Number,Scl}}}, L; options...)
+    os_grid = haskey(options, :os_grid) ? options[:os_grid] : oversampling_grid(samplingstyle, platform, param, L; options...)
+    q = div.(L, 1 .<< param)
+    WE_K = _nonzero_coefficients((compactsupport(samplingstyle, scalingplatform(platform.basisplatform), param,
+        map(scalingplatform,platforms), supergrid(os_grid); options...)), q, mask(os_grid))
+end
+
+function ef_AAZA_nonzero_row_indexset(samplingstyle::SamplingStyle, platform::Platform, param, platforms::Tuple{Vararg{<:AbstractWaveletPlatform{<:Number,Wvl}}}, L; verbose=false, options...)
+    os_grid = haskey(options, :os_grid) ? options[:os_grid] : oversampling_grid(samplingstyle, platform, param, L; options...)
+    scaling_platform = ExtensionFramePlatform(scalingplatform(platform.basisplatform), support(platform))
+    scaling_platforms = map(scalingplatform,platforms)
+    verbose && @info "ReducedAZStyle: use nonzero cols of scaling basis to get nonzero rows"
+    nonzero_coefs = ef_nonzero_coefficients(samplingstyle, scaling_platform, param, scaling_platforms, L; verbose=verbose,  options..., os_grid=os_grid)
+    ef_AAZA_nonzero_row_indexset(samplingstyle, scaling_platform, param, scaling_platforms, L; options..., os_grid=os_grid, nonzero_coefs=nonzero_coefs)
 end
 
 function compactinfinitevectors(ss::OversamplingStyle, bplatform::Platform, param, platforms::Tuple{<:AbstractWaveletPlatform{<:Number,Scl}}, os_grid::AbstractIntervalGrid; options...)
@@ -97,7 +118,7 @@ function ef_sparse_reducedAAZAoperator(samplingstyle::SamplingStyle, platform::E
     if return_scalingandidwteoperators
         return scaling_M, iDWTE
     end
-    M = droptol!(@time(scaling_M*iDWTE), nz_tol)
+    M = droptol!((scaling_M*iDWTE), nz_tol)
     verbose && @info "Sparse AZ: A-AZ^*A has size $(size(M)) and $(nnz(M)) nonzero elements ($(100nnz(M)/prod(size(M)))% fill)"
 
     # wavelet_nonzero_coefs = nonzero_rows(iDWTE')

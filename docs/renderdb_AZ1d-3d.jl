@@ -47,7 +47,8 @@ timingsAZ = zeros(length(fs), L,length(ds))
     # timingsI = copy(timingsAZ)
     # errorsI = copy(timingsAZ)
     # allocI = copy(timingsAZ)
-    include("fill_data.jl")
+    include("fill_data_db.jl")
+
 
 # You can leave this computation out
 for (d,f) in zip(3:3,fs[3:3]), (i,n) in enumerate(nsds[d]), (j,p) in enumerate(ds[1:3]) #

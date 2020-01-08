@@ -86,7 +86,7 @@ using FrameFunWavelets, FrameFun, Test, DomainSets, FrameFunTranslates, SparseAr
     P = ExtensionFramePlatform(DaubechiesPlatform(2),0.0..0.4)
     N = 8
     M = Matrix(firstAZstepoperator(P,N;solverstyle=ReducedAZStyle()))
-    rM = reducedAAZAoperator(P,N;solverstyle=ReducedAZStyle()).A
+    rM = Matrix(reducedAAZAoperator(P,N;solverstyle=ReducedAZStyle()))
     sM = droptol!(sparse(rM),1e-12)
     srM = droptol!(sparse(M),1e-12)
     @test any(size(sM).< size(srM))
@@ -96,7 +96,7 @@ using FrameFunWavelets, FrameFun, Test, DomainSets, FrameFunTranslates, SparseAr
     P = ExtensionFramePlatform(NdCDFPlatform(2,3,3),(0.0..0.4)^2)
     N = 5,5
     M = Matrix(firstAZstepoperator(P,N;solverstyle=ReducedAZStyle()))
-    rM = reducedAAZAoperator(P,N;solverstyle=ReducedAZStyle()).A
+    rM = Matrix(reducedAAZAoperator(P,N;solverstyle=ReducedAZStyle()))
     sM = droptol!(sparse(rM),1e-12)
     srM = droptol!(sparse(M),1e-12)
     @test any(size(sM).< size(srM))
@@ -107,7 +107,7 @@ using FrameFunWavelets, FrameFun, Test, DomainSets, FrameFunTranslates, SparseAr
     P = ExtensionFramePlatform(NdCDFPlatform(2,4,4),(0.0..0.4)^2)
     N = 5,5
     M = Matrix(firstAZstepoperator(P,N;solverstyle=ReducedAZStyle()))
-    rM = reducedAAZAoperator(P,N;solverstyle=ReducedAZStyle()).A
+    rM = Matrix(reducedAAZAoperator(P,N;solverstyle=ReducedAZStyle()))
     sM = droptol!(sparse(rM),1e-12)
     srM = droptol!(sparse(M),1e-12)
     @test any(size(sM).< size(srM))
@@ -116,7 +116,7 @@ using FrameFunWavelets, FrameFun, Test, DomainSets, FrameFunTranslates, SparseAr
 end
 
 using FrameFunWavelets
-using FrameFunWavelets.CompactAZ.sparseiDWTEs: sparseiDWTMatrix, sparseiDWTE
+using FrameFunWavelets.sparseiDWTEs: sparseiDWTMatrix, sparseiDWTE
 @testset "2-D sparseiDWTE" begin
     dict = CDFWaveletBasis(4,4,2)^2
     sm = sparseiDWTMatrix(dict)
