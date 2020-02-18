@@ -52,6 +52,10 @@ function compactinfinitevectors(ss::OversamplingStyle, bplatform::Platform, para
      map(compactinfinitevector, map(dictionary, platforms, param), elements(os_grid))
 end
 
+ef_nonzero_coefficients(ss::DiscreteStyle, platform::Platform, param, platforms::Tuple{Vararg{<:AbstractWaveletPlatform{<:Number,Scl}}}, q, os_grid::AbstractGrid; options...) =
+    _nonzero_coefficients(compactsupport(ss, platform.basisplatform, param, platforms, supergrid(os_grid); os_grid=supergrid(os_grid), options...), q, mask(os_grid))
+
+
 ef_nonzero_pointsindices(ss::DiscreteStyle, platform::Platform, param, platforms::Tuple{Vararg{<:AbstractWaveletPlatform{<:Number,Scl}}}, q, os_grid::AbstractGrid, ix, relative::Bool; options...) =
     _nonzero_pointsindices(compactsupport(ss, platform.basisplatform, param, platforms, supergrid(os_grid); os_grid=supergrid(os_grid), options...), q, mask(os_grid), ix, relative)
 
@@ -65,12 +69,21 @@ ef_reducedAZ_AAZAreductionsolver(samplingstyle::SamplingStyle, platform::Platfor
 
 ef_reducedAAZAoperator(samplingstyle::SamplingStyle, platform::Platform, param, platforms::Tuple{Vararg{<:AbstractWaveletPlatform}}, L; options...) =
     ef_true_nonzero_reducedAAZAoperator(samplingstyle, platform, param, platforms, L; options...)
-
-function ef_sparseAZ_AAZAreductionsolver(samplingstyle::SamplingStyle, platform::ExtensionFramePlatform, param, platforms::Tuple{Vararg{<:AbstractWaveletPlatform{<:Number,Wvl}}}, L, directsolver; verbose=false, options...)
+using LinearAlgebra: Diagonal
+function ef_sparseAZ_AAZAreductionsolver(samplingstyle::SamplingStyle, platform::ExtensionFramePlatform, param, platforms::Tuple{Vararg{<:AbstractWaveletPlatform{<:Number,Wvl}}}, L, directsolver;
+        verbose=false, weightedAZ=false, options...)
     os_grid = haskey(options, :os_grid) ? options[:os_grid] : oversampling_grid(samplingstyle, platform, param, L; verbose=verbose, options...)
     rM = haskey(options, :sparse_reducedAAZAoperator) ? options[:sparse_reducedAAZAoperator] : sparse_reducedAAZAoperator(samplingstyle, platform, param, L; verbose=verbose, os_grid=os_grid, options...)
     verbose && @info "Sparse AZ: use $(directsolver) as solver for first sparse AZ step"
-    FrameFunInterface.directsolver(rM; verbose=verbose, directsolver=directsolver, options...)
+
+    if weightedAZ
+        verbose && @info "Weighted AZ"
+        AZ_Cweight = haskey(options,:AZ_Cweight) ? options[:AZ_Cweight] : error("No options `AZ_Cweight`")
+        AZ_Cweight*
+            FrameFunInterface.directsolver(ArrayOperator(rM.A*Diagonal(diag(AZ_Cweight)),src(rM),dest(rM)); verbose=verbose, directsolver=directsolver, options...)
+    else
+        FrameFunInterface.directsolver(rM; verbose=verbose, directsolver=directsolver, options...)
+    end
 end
 
 
@@ -126,5 +139,34 @@ function ef_sparse_reducedAAZAoperator(samplingstyle::SamplingStyle, platform::E
     src = wavelet_frame#[wavelet_nonzero_coefs]
     dest = GridBasis{coefficienttype(src)}(os_grid)
     ArrayOperator(M, src, dest)
+end
+
+export levelweighed_approximate
+function levelweighed_approximate(f, P::Platform, N::NTuple{D,Int}; options...) where D
+    Nmin = minimum(N)
+    @assert Nmin >= 2
+    NN = ntuple(k->N[k]-Nmin+2,Val(D))
+    if haskey(options,:L)
+        q = div.(options[:L],1 .<< N)
+        F,A,b,c,S = approximate(f, P, NN;options..., L=q.*(1 .<< NN))
+    else
+        F,A,b,c,S = approximate(f, P, NN;options...)
+    end
+    e = norm(A*c-b)
+    w = [e]
+
+    for i in NN[1]+1:N[1]
+        NN = NN .+ 1
+        W = LevelWeightingOperator(basis(dictionary(P,NN)),w)
+        if haskey(options,:L)
+            q = div.(options[:L],1 .<< N)
+            F,A,b,c,S = approximate(f,P,NN;options..., L=q.*(1 .<< NN), weightedAZ=true, AZ_Cweight=W)
+        else
+            F,A,b,c,S = approximate(f,P,NN;options..., L=q.*(1 .<< NN), weightedAZ=true, AZ_Cweight=W)
+        end
+        e = norm(A*c-b)
+        append!(w,e)
+    end
+    return F,A,b,c,S
 end
 end

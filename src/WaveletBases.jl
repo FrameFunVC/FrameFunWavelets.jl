@@ -23,7 +23,8 @@ import BasisFunctions: length, size, native_index, name, subdict, hasextension,
     unsafe_eval_element, unsafe_eval_element1,
     apply!, grid_evaluation_operator, apply, dest, src_space, instantiate, plotgrid,
     promote_domaintype, isbasis, isorthogonal, isorthonormal, isbiorthogonal, evaluation_matrix!,
-    ArrayOperator, symbol, _default_unsafe_eval_element_in_grid
+    ArrayOperator, symbol, _default_unsafe_eval_element_in_grid,
+    isinplace, dest, diag, apply_inplace!, isdiag, adjoint
 import ..DyadicPeriodicEquispacedGrids: dyadic_length
 import WaveletsEvaluation.DWT: value, wavelet, kind
 import CompactTranslatesDict: GenericPeriodicEquispacedTranslates
@@ -242,10 +243,10 @@ export waveletbasis
 waveletbasis(dict::DaubechiesWaveletBasis{P,T,S,K,scaled}) where {P,T,S,K,scaled} =
     DaubechiesWaveletBasis{P,T,S,Wvl,scaled}(dict.w, dict.L)
 
-DaubechiesWaveletBasis(P::Int, L::Int, ::Type{T} = Float64, scaled::Bool=true) where {T} =
+DaubechiesWaveletBasis(P::Int, L::Int, ::Type{T} = Float64, scaled::Bool=true) where {T<:Real} =
     DaubechiesWaveletBasis{P,T,Prl,Wvl,scaled}(DaubechiesWavelet{P,T}(), L)
 
-Daubechiesscalingbasis(P::Int, L::Int, ::Type{T} = Float64, scaled::Bool=true) where {T} =
+Daubechiesscalingbasis(P::Int, L::Int, ::Type{T} = Float64, scaled::Bool=true) where {T<:Real} =
     DaubechiesWaveletBasis{P,T,Prl,Scl,scaled}(DaubechiesWavelet{P,T}(), L)
 
 promote_domaintype(b::DaubechiesWaveletBasis{P,T,SIDE,KIND,scaled}, ::Type{S}) where {P,T,S,SIDE,KIND,scaled} =
@@ -428,5 +429,55 @@ wavelet_dual(w::CDFWaveletBasis{P,Q,T,S,K,scaled}) where {P,Q,T,S,K,scaled} =
 #         return WeightOperator(wav, 2, j, dyadic_os-1)
 #     end
 # end
+export LevelWeightingOperator
+"""
+    struct LevelWeightingOperator{T} <: DictionaryOperator{T}
+
+An operator that weights the coefficients of the different wavelet levels differently.
+
+# Example
+```jldocs
+julia> reshape(diag(LevelWeightingOperator(DaubechiesWaveletBasis(2,2)^2,[1.,.1])),4,4)
+4×4 Array{Float64,2}:
+ 1.0  1.0  0.1  0.1
+ 1.0  1.0  0.1  0.1
+ 0.1  0.1  0.1  0.1
+ 0.1  0.1  0.1  0.1
+```
+"""
+struct LevelWeightingOperator{T} <: DictionaryOperator{T}
+    src::WaveletTensorProductDict
+    weights::Vector{T}
+    function LevelWeightingOperator(src::WaveletTensorProductDict,weights::Vector{T}) where T
+        w = ones(T,minimum(map(dyadic_length,elements(src))))
+        @assert minimum(map(dyadic_length,elements(src))) >= length(weights)
+        copyto!(w,length(w)-length(weights)+1,weights)
+        new{T}(src,w)
+    end
+end
+
+isinplace(::LevelWeightingOperator) = true
+isdiag(::LevelWeightingOperator) = true
+dest(op::LevelWeightingOperator) = src(op)
+diag(op::LevelWeightingOperator) = reshape(op*ones(src(op)),length(src(op)))
+function apply_inplace!(op::LevelWeightingOperator, src)
+    limits = [i>>j for i in size(op.src),  j in length(op.weights):-1:1]
+    limits[:,1] .+= 1
+    for i in CartesianIndices(size(src))
+        src[i] .*= op.weights[selectindex(i, limits)]
+    end
+    src
+end
+
+function selectindex(index::CartesianIndex, limits::Matrix{Int})
+    r = 1
+    for l in CartesianIndices(size(limits))
+        if index[l.I[1]] > limits[l]
+            r = l.I[2]
+        end
+    end
+    r
+end
+adjoint(op::LevelWeightingOperator) = op
 
 end
