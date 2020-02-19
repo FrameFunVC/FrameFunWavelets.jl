@@ -40,7 +40,7 @@ using Test, FrameFunWavelets, FrameFun, DomainSets, LinearAlgebra
     @test nnzcolumn(P,4,1e-10) == 16
     @test nnzcolumn(P,5,1e-10) == 25
     @test nnzcolumn(P,6,1e-10) == 33
-    @test nnzcolumn(P,7,1e-10) == 40
+    @test nnzcolumn(P,7,1e-10) == 42
 
     @test nnzrow(P,3,1e-10) == 26
     @test nnzrow(P,4,1e-10) == 35
@@ -50,11 +50,11 @@ using Test, FrameFunWavelets, FrameFun, DomainSets, LinearAlgebra
 
     # Is it numeric noise that increases plunge rank?
     P = ExtensionFramePlatform(DaubechiesPlatform(5),0.0..0.4)
-    @test myplungerank(P,3,1e-8) == 6
-    @test myplungerank(P,4,1e-8) == 12
-    @test myplungerank(P,5,1e-8) == 18
-    @test myplungerank(P,6,1e-8) == 30
-    @test myplungerank(P,7,1e-8) == 56
+    @test myplungerank(P,3,1e-8) == 8
+    @test myplungerank(P,4,1e-8) == 14
+    @test myplungerank(P,5,1e-8) == 16
+    @test myplungerank(P,6,1e-8) == 29
+    @test myplungerank(P,7,1e-8) == 55
 
     @test nnzcolumn(P,3,1e-8) == 8
     @test nnzcolumn(P,4,1e-8) == 16
@@ -110,7 +110,7 @@ using Test, FrameFunWavelets, FrameFun, DomainSets, LinearAlgebra
     @test myplungerank(P,3,1e-8) == 6
     @test myplungerank(P,4,1e-8) == 7
     @test myplungerank(P,5,1e-8) == 6
-    @test myplungerank(P,6,1e-8) == 6
+    @test myplungerank(P,6,1e-8) == 7
     @test myplungerank(P,7,1e-8) == 7
 
     @test nnzcolumn(P,3,1e-8) == 8
@@ -122,7 +122,7 @@ using Test, FrameFunWavelets, FrameFun, DomainSets, LinearAlgebra
     @test nnzrow(P,3,1e-8) == 17
     @test nnzrow(P,4,1e-8) == 32
     @test nnzrow(P,5,1e-8) == 29
-    @test nnzrow(P,6,1e-8) == 28
+    @test nnzrow(P,6,1e-8) == 33
     @test nnzrow(P,7,1e-8) == 31
 end
 

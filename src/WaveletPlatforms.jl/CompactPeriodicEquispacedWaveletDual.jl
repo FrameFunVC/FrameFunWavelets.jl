@@ -5,7 +5,7 @@ using ....FrameFunWavelets.WaveletBases, BasisFunctions, CompactTranslatesDict,
 
 using WaveletsEvaluation.DWT: Scl, Wvl, Prl, evaluate_in_dyadic_points, scaling
 
-import BasisFunctions: grid_evaluation_operator
+import BasisFunctions: evaluation
 
 compact_wavelet_dual(dict::WaveletBasis{T,S,Scl}, m) where {T,S} =
     CompactPeriodicEquispacedTranslatesDual(dict, m)
@@ -16,7 +16,7 @@ function compact_wavelet_dual(dict::WaveletBasis{T,S,Wvl,scaled}, m) where {T,S,
     InverseDiscreteWaveletTransform(dual_waveletdict, dual_scalingdict, wavelet(dict), side(dual_waveletdict), dyadic_length(dict), scaled)*dual_waveletdict
 end
 
-grid_evaluation_operator(dict::CompactPeriodicEquispacedTranslatesDual, gb::GridBasis, grid::DyadicPeriodicEquispacedGrid; options...) =
-    grid_evaluation_operator(dict, gb, PeriodicEquispacedGrid(grid))
+evaluation(::Type{T}, dict::CompactPeriodicEquispacedTranslatesDual, gb::GridBasis, grid::DyadicPeriodicEquispacedGrid; options...) where {T} =
+    evaluation(T, dict, gb, PeriodicEquispacedGrid(grid))
 
 end

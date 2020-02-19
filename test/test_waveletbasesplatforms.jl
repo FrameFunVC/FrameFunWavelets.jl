@@ -97,13 +97,13 @@ using CompactTranslatesDict.CompactPeriodicEquispacedTranslatesDuals: signal
     N = 4
     P = CDFPlatform(4,2)
     dict = dictionary(P,N)
-    @test evaluation_operator(scalingbasis(dict), PeriodicEquispacedGrid(2*length(dict),support(dict))).A[:,1]==CompactPeriodicInfiniteVector(signal(scalingbasis(dict), 2),2length(dict))[0:length(dict)*2-1]
+    @test evaluation(scalingbasis(dict), PeriodicEquispacedGrid(2*length(dict),support(dict))).A[:,1]==CompactPeriodicInfiniteVector(signal(scalingbasis(dict), 2),2length(dict))[0:length(dict)*2-1]
 
     N = 4
     P = DaubechiesPlatform(2)
     dict = dictionary(P,N)
     g = PeriodicEquispacedGrid(2*length(dict),support(dict))
-    @test evaluation_operator(scalingbasis(dict), g).A[:,1]≈signal(scalingbasis(dict), 2)[0:length(dict)*2-1]
+    @test evaluation(scalingbasis(dict), g).A[:,1]≈signal(scalingbasis(dict), 2)[0:length(dict)*2-1]
 end
 
 using FrameFunWavelets, FrameFun, Test, LinearAlgebra, InfiniteVectors
@@ -114,7 +114,7 @@ using FrameFunWavelets.WaveletPlatforms.WaveletBasesPlatforms.CompactPeriodicEqu
     P = DaubechiesPlatform(2)
     dict = scalingbasis(dictionary(P,N))
     g = DyadicPeriodicEquispacedGrid(2(1<<N),FrameFun.support(dict))
-    E1 = evaluation_operator(dict, g).A
+    E1 = evaluation(dict, g).A
     b = signal(dict, 2)
     c = PeriodicInfiniteVector(b,32)[0:31]
     d = PeriodicInfiniteVector(inv(b, 2;K=1)',32)[0:31]
@@ -126,12 +126,12 @@ using FrameFunWavelets.WaveletPlatforms.WaveletBasesPlatforms.CompactPeriodicEqu
     g = DyadicPeriodicEquispacedGrid(2(1<<N),FrameFun.support(dict))
     dual_dict = dualdictionary(P,N,discretemeasure(g))
 
-    E1 = evaluation_operator(dict, g)
-    S1 = evaluation_operator(scalingbasis(dict), g)
+    E1 = evaluation(dict, g)
+    S1 = evaluation(scalingbasis(dict), g)
     iDWT1 = InverseDiscreteWaveletTransform(dict)
     @test S1*iDWT1≈E1
 
-    E2 = evaluation_operator(dual_dict, PeriodicEquispacedGrid(g))
+    E2 = evaluation(dual_dict, PeriodicEquispacedGrid(g))
     S2 = element(E2,2)
     iDWT2 = element(E2,1)
 
@@ -146,12 +146,12 @@ using FrameFunWavelets.WaveletPlatforms.WaveletBasesPlatforms.CompactPeriodicEqu
     g = DyadicPeriodicEquispacedGrid(2(1<<N),FrameFun.support(dict))
     dual_dict = dualdictionary(P,N,discretemeasure(g))
 
-    E1 = evaluation_operator(dict, g)
-    S1 = evaluation_operator(scalingbasis(dict), g)
+    E1 = evaluation(dict, g)
+    S1 = evaluation(scalingbasis(dict), g)
     iDWT1 = InverseDiscreteWaveletTransform(dict)
     @test S1*iDWT1≈E1
 
-    E2 = evaluation_operator(dual_dict, PeriodicEquispacedGrid(g))
+    E2 = evaluation(dual_dict, PeriodicEquispacedGrid(g))
     S2 = element(E2,2)
     iDWT2 = element(E2,1)
 
@@ -167,9 +167,8 @@ end
     @test element(op,1) isa InverseDiscreteWaveletTransform
     @test element(op,2) isa VerticalBandedOperator
     op2 = AZ_Zt(P,N)
-
-    @test element(op2,length(elements(op))) isa DiscreteWaveletTransform
-    @test element(op2,length(elements(op))-1) isa HorizontalBandedOperator
+    @test any(isa.(elements(op2), DiscreteWaveletTransform))
+    @test any(isa.(elements(op2), HorizontalBandedOperator))
     @test AZ_Zt(P,N)*AZ_A(P,N) ≈ IdentityOperator(dictionary(P,N))
 
     P = CDFPlatform(4,4)
@@ -179,10 +178,10 @@ end
     dict = dictionary(P,N)
     g = sampling_grid(P,N)
     Z = AZ_Z(P,N)
-    E = evaluation_operator(dual_dict, g)
+    E = evaluation(dual_dict, g)
     @test Z≈E
     A = AZ_A(P,N)
-    E = evaluation_operator(dict, g)
+    E = evaluation(dict, g)
     @test A≈E
 
     @test Z'A ≈ IdentityOperator(dict)
