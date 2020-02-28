@@ -19,7 +19,7 @@ using CardinalBSplines: evaluate_BSpline
 import Base: checkbounds, convert, promote_rule
 import BasisFunctions: length, size, native_index, name, subdict, hasextension,
     approx_length, resize, hasinterpolationgrid, hastransform, iscompatible, hasgrid_transform,
-    support, measure, period, interpolation_grid, ordering, linear_index, extension_size,
+    support, measure, period, interpolation_grid, ordering, linear_index, extensionsize,
     unsafe_eval_element, unsafe_eval_element1,
     apply!, evaluation, apply, dest, src_space, plotgrid,
     promote_domaintype, isbasis, isorthogonal, isorthonormal, isbiorthogonal, evaluation_matrix!,
@@ -110,7 +110,7 @@ linear_index(b::WaveletBasis{T,S,Scl}, idxn::WaveletIndex) where {T,S<:Side} =
 
 approx_length(::WaveletBasis, n) = 1<<round(Int, log2(size_l))
 
-extension_size(b::WaveletBasis) = 2*length(b)
+extensionsize(b::WaveletBasis) = 2*length(b)
 
 
 function unsafe_eval_element(dict::WaveletBasis{T,S,K,scaled}, idxn::WaveletIndex, x; xtol=1e-4, options...) where {T,S,K,scaled}
@@ -223,7 +223,8 @@ export scalingbasis
 """
 scalingbasis(w::DaubechiesWavelet{P,T}, L::Int, ::Type{S}=Prl, scaled=true) where {P,T,S} =
     Daubechiesscalingbasis(P, L, T, scaled)
-
+waveletbasis(w::DaubechiesWavelet{P,T}, L::Int, ::Type{S}=Prl, scaled=true) where {P,T,S} =
+    DaubechiesWaveletBasis(P, L, T, scaled)
 scalingbasis(dict::DaubechiesWaveletBasis{P,T,S,K,scaled}) where {P,T,S,K,scaled} =
     DaubechiesWaveletBasis{P,T,S,Scl,scaled}(dict.w, dict.L)
 
@@ -253,6 +254,8 @@ struct CDFWaveletBasis{P,Q,T,S,K,scaled} <: BiorthogonalWaveletBasis{T,S,K,scale
 end
 
 scalingbasis(w::CDFWavelet{P,Q,T}, L::Int, ::Type{S}=Prl, scaled::Bool=true) where {P,Q,T,S} =
+    CDFscalingbasis(P, Q, L, S, T, scaled)
+waveletbasis(w::CDFWavelet{P,Q,T}, L::Int, ::Type{S}=Prl, scaled::Bool=true) where {P,Q,T,S} =
     CDFscalingbasis(P, Q, L, S, T, scaled)
 
 CDFWaveletBasis(P::Int, Q::Int, L::Int, ::Type{S}=Prl, ::Type{T} = Float64, scaled::Bool=true) where {T,S<:Side} =

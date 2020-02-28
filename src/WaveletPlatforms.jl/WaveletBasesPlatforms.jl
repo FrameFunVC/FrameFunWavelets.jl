@@ -4,7 +4,7 @@ include("CompactPeriodicEquispacedWaveletDual.jl")
 using .CompactPeriodicEquispacedWaveletDual: compact_wavelet_dual
 
 using FrameFunWavelets, FrameFun.Platforms, FrameFun.BasisFunctions
-using WaveletsEvaluation.DWT: Wvl, Prl, Kind, Side, CDFWavelet, DaubechiesWavelet
+using WaveletsEvaluation.DWT: Wvl, Prl, Kind, Side, CDFWavelet, DaubechiesWavelet, DiscreteWavelet
 import FrameFun.Platforms: platform, dictionary, SolverStyle, measure, SamplingStyle,
     dualdictionary, correctparamformat, unsafe_dictionary, Platform
 import FrameFun.FrameFunInterface: correct_sampling_parameter, SamplingStrategy, oversampling_grid
@@ -28,6 +28,7 @@ scalingplatform(P::ProductPlatform) = ProductPlatform(map(scalingplatform, eleme
 export waveletplatform
 waveletplatform(P::AbstractWaveletPlatform) = platform(waveletbasis(dictionary(P,1)))
 waveletplatform(P::ProductPlatform) = ProductPlatform(map(waveletplatform, elements(P)))
+waveletplatform(w::DiscreteWavelet, ::Type{S}=Prl, scaled::Bool=false) where {S} = platform(waveletbasis(w,0,S,scaled))
 
 function dualdictionary(platform::AbstractWaveletPlatform, param, measure::UniformDiracCombMeasure;
         options...)
@@ -42,7 +43,7 @@ function dualdictionary(platform::AbstractWaveletPlatform, param, measure::Unifo
         return dual(dict, measure; options...)
     else
         if isperiodic(g)
-            return compact_wavelet_dual(dict, m)
+            return compact_wavelet_dual(dict, m; options...)
         else
             error()
         end
