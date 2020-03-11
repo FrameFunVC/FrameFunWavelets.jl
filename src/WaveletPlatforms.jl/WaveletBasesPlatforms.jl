@@ -74,11 +74,11 @@ export DaubechiesPlatform
 struct DaubechiesPlatform{P,T,K<:Kind,scaled} <: AbstractWaveletPlatform{T,K,scaled}
 end
 
-DaubechiesPlatform(P::Int, ::Type{K}=Wvl, scaled::Bool=false) where {K} =
+DaubechiesPlatform(P::Int, ::Type{K}=Wvl, scaled::Bool=true) where {K} =
     DaubechiesPlatform{P,Float64,K,scaled}()
-DaubechiesPlatform{T}(P::Int, ::Type{K}=Wvl, scaled::Bool=false) where {T,K} =
+DaubechiesPlatform{T}(P::Int, ::Type{K}=Wvl, scaled::Bool=true) where {T,K} =
     DaubechiesPlatform{P,T,K,scaled}()
-Platform(w::DaubechiesWavelet{P,T},::Type{K}=Wvl, scaled::Bool=false) where {P,T,K} =
+Platform(w::DaubechiesWavelet{P,T},::Type{K}=Wvl, scaled::Bool=true) where {P,T,K} =
     DaubechiesPlatform{P,T,K,scaled}()
 
 unsafe_dictionary(platform::DaubechiesPlatform{P,T,K,scaled}, param::Int) where {P,T,K,scaled} =

@@ -256,7 +256,7 @@ end
 scalingbasis(w::CDFWavelet{P,Q,T}, L::Int, ::Type{S}=Prl, scaled::Bool=true) where {P,Q,T,S} =
     CDFscalingbasis(P, Q, L, S, T, scaled)
 waveletbasis(w::CDFWavelet{P,Q,T}, L::Int, ::Type{S}=Prl, scaled::Bool=true) where {P,Q,T,S} =
-    CDFscalingbasis(P, Q, L, S, T, scaled)
+    CDFWaveletBasis(P, Q, L, S, T, scaled)
 
 CDFWaveletBasis(P::Int, Q::Int, L::Int, ::Type{S}=Prl, ::Type{T} = Float64, scaled::Bool=true) where {T,S<:Side} =
     CDFWaveletBasis{P,Q,T,S,Wvl,scaled}(CDFWavelet{P,Q,T}(),L)
