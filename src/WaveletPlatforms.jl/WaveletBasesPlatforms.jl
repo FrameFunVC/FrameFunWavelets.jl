@@ -30,7 +30,7 @@ waveletplatform(P::AbstractWaveletPlatform) = platform(waveletbasis(dictionary(P
 waveletplatform(P::ProductPlatform) = ProductPlatform(map(waveletplatform, elements(P)))
 waveletplatform(w::DiscreteWavelet, ::Type{S}=Prl, scaled::Bool=false) where {S} = platform(waveletbasis(w,0,S,scaled))
 
-function dualdictionary(platform::AbstractWaveletPlatform, param, measure::UniformDiracCombMeasure;
+function dualdictionary(platform::AbstractWaveletPlatform, param, measure::UniformDiracComb;
         options...)
     dict = dictionary(platform, param)
     g = grid(measure)

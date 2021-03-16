@@ -17,7 +17,7 @@ using BasisFunctions: SamplingOperator
 using CardinalBSplines: evaluate_BSpline
 
 import Base: checkbounds, convert, promote_rule
-import BasisFunctions: length, size, native_index, name, subdict, hasextension,
+import BasisFunctions: length, size, native_index, name, hasextension,
     approx_length, resize, hasinterpolationgrid, hastransform, iscompatible, hasgrid_transform,
     support, measure, period, interpolation_grid, ordering, linear_index, extensionsize,
     unsafe_eval_element, unsafe_eval_element1,

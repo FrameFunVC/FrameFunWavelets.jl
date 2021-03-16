@@ -4,7 +4,7 @@ using GridArrays: rescale, hasextension, extend
 
 for T in (Float64, BigFloat)
     @testset "$(rpad(string(DyadicPeriodicEquispacedGrid),80))" begin
-        g = instantiate(DyadicPeriodicEquispacedGrid,4 ,T)
+        g = DyadicPeriodicEquispacedGrid{T}(4)
         test_generic_grid(g)
         T = eltype(g)
         g1 = rescale(rescale(g, -T(10), T(3)), infimum(support(g)), supremum(support(g)))
