@@ -17,7 +17,7 @@ using BasisFunctions: SamplingOperator
 using CardinalBSplines: evaluate_BSpline
 
 import Base: checkbounds, convert, promote_rule
-import BasisFunctions: length, size, native_index, name, subdict, hasextension,
+import BasisFunctions: length, size, native_index, name, hasextension,
     approx_length, resize, hasinterpolationgrid, hastransform, iscompatible, hasgrid_transform,
     support, measure, period, interpolation_grid, ordering, linear_index, extensionsize,
     unsafe_eval_element, unsafe_eval_element1,
@@ -82,7 +82,7 @@ iscompatible(set::WaveletBasis, grid::DyadicPeriodicEquispacedGrid) =
 hasgrid_transform(b::WaveletBasis, gb, grid) = iscompatible(b, grid)
 
 support(dict::WaveletBasis{T}) where T = UnitInterval{T}()
-measure(dict::WaveletBasis{T}) where T = FourierMeasure{T}()
+measure(dict::WaveletBasis{T}) where T = FourierWeight{T}()
 support(b::WaveletBasis, idx) = support(b, native_index(b, idx))
 
 function support(dict::WaveletBasis{T}, idxn::WaveletIndex) where {T}
@@ -208,8 +208,8 @@ export OrthogonalWaveletBasis
 abstract type OrthogonalWaveletBasis{T,S,K,scaled} <: BiorthogonalWaveletBasis{T,S,K,scaled} end
 
 isbasis(b::OrthogonalWaveletBasis) = true
-isorthogonal(b::OrthogonalWaveletBasis, ::FourierMeasure) = true
-isorthonormal(b::OrthogonalWaveletBasis, ::FourierMeasure) = true
+isorthogonal(b::OrthogonalWaveletBasis, ::FourierWeight) = true
+isorthonormal(b::OrthogonalWaveletBasis, ::FourierWeight) = true
 
 export DaubechiesWaveletBasis
 struct DaubechiesWaveletBasis{P,T,S,K,scaled} <: OrthogonalWaveletBasis{T,S,K,scaled}
@@ -276,7 +276,7 @@ promote_domaintype(b::CDFWaveletBasis{P,Q,T,SIDE,KIND,scaled}, ::Type{S}) where 
 iscompatible(src1::CDFWaveletBasis{P,Q,T1,S1,K1,scaled}, src2::CDFWaveletBasis{P,Q,T2,S2,K2,scaled}) where {P,Q,T1,T2,S1,S2,K1,K2,scaled} = true
 
 GenericPeriodicEquispacedTranslates(dict::CDFWaveletBasis{P,Q,T,Prl,Scl,scaled}) where {P,Q,T,scaled} =
-    BSplineTranslatesBasis{T,P-1,scaled}(length(dict))
+    BSplineTranslatesBasis{T,P-1,scaled,true}(length(dict))
 #     GenericPeriodicEquispacedTranslates(interpolation_grid(dict), x->sqrt(T(length(dict)))*evaluate_BSpline(Val(P-1),
 #         length(dict)*x, T), Interval(T(0),T(P)/length(dict)))
 # GenericPeriodicEquispacedTranslates(dict::CDFWaveletBasis{P,Q,T,Prl,Scl,false}) where {P,Q,T} =

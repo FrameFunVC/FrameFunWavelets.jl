@@ -1,6 +1,8 @@
 module TestWaveletBases
-using Test, FrameFun.BasisFunctions, FrameFun.BasisFunctions.Test, FrameFunWavelets.WaveletBases,
-    StaticArrays, DomainSets, FrameFunWavelets.DyadicPeriodicEquispacedGrids
+
+using Test, BasisFunctions, DomainSets, StaticArrays,
+    BasisFunctions.Test, FrameFunWavelets.WaveletBases,
+    FrameFunWavelets.DyadicPeriodicEquispacedGrids
 
 using WaveletsEvaluation.DWT: quad_trap, quad_sf, quad_sf_weights, quad_sf_N, quad_trap_N
 using WaveletsEvaluation.DWT: wavelet, Dual, scaling, db3,  db4, Primal, Prl, value
@@ -183,4 +185,5 @@ end
     plot!(Dual, wavelet, wavelet(b),j=1,k=0,subplot=2,periodic=true)
     plot!(Dual, wavelet, wavelet(b),j=1,k=1,subplot=2,periodic=true)
 end
-end
+
+end # module

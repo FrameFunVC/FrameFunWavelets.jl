@@ -27,10 +27,10 @@ end
 
 @testset "AZ_A" begin
     P = DaubechiesPlatform(3)
-    @test SamplingStyle(P) == OversamplingStyle()
+    # @test SamplingStyle(P) == OversamplingStyle()
     @test dictionary(P,10) isa DaubechiesWaveletBasis
     @test sampling_grid(P,10;oversamplingfactor=1) == interpolation_grid(dictionary(P,10))
-    @test dualdictionary(P,10,FourierMeasure()) == wavelet_dual(dictionary(P,10))
+    @test dualdictionary(P,10,FourierWeight()) == wavelet_dual(dictionary(P,10))
     @test element(AZ_A(P,5),1) isa InverseDiscreteWaveletTransform
 
     PP = ExtensionFramePlatform(P,0.0..0.49)
@@ -42,7 +42,7 @@ end
     @test SamplingStyle(P) == OversamplingStyle()
     @test dictionary(P,10) isa CDFWaveletBasis{4,2,Float64,Prl,Wvl}
     @test sampling_grid(P,10;oversamplingfactor=1) == interpolation_grid(dictionary(P,10))
-    @test dualdictionary(P,10,FourierMeasure()) isa CDFWaveletBasis{4,2,Float64,Dul,Wvl}
+    @test dualdictionary(P,10,FourierWeight()) isa CDFWaveletBasis{4,2,Float64,Dul,Wvl}
     @test element(AZ_A(P,5),1) isa InverseDiscreteWaveletTransform
 
     PP = ExtensionFramePlatform(P,0.0..0.49)
@@ -92,7 +92,7 @@ end
 end
 
 
-using CompactTranslatesDict.CompactPeriodicEquispacedTranslatesDuals: signal
+using CompactTranslatesDict: signal
 @testset "signal" begin
     N = 4
     P = CDFPlatform(4,2)
@@ -107,7 +107,7 @@ using CompactTranslatesDict.CompactPeriodicEquispacedTranslatesDuals: signal
 end
 
 using FrameFunWavelets, FrameFun, Test, LinearAlgebra, InfiniteVectors
-using CompactTranslatesDict.CompactPeriodicEquispacedTranslatesDuals: CompactPeriodicEquispacedTranslatesDual, signal
+using CompactTranslatesDict: CompactPeriodicEquispacedTranslatesDual, signal
 using FrameFunWavelets.WaveletPlatforms.WaveletBasesPlatforms.CompactPeriodicEquispacedWaveletDual: compact_wavelet_dual
 @testset "dual dictionary" begin
     N = 4
@@ -164,8 +164,8 @@ end
     P = DaubechiesPlatform(2)
     N = 4
     op = AZ_Z(P,N)
-    @test element(op,1) isa InverseDiscreteWaveletTransform
-    @test element(op,2) isa VerticalBandedOperator
+    @test element(op,2) isa InverseDiscreteWaveletTransform
+    @test element(op,3) isa VerticalBandedOperator
     op2 = AZ_Zt(P,N)
     @test any(isa.(elements(op2), DiscreteWaveletTransform))
     @test any(isa.(elements(op2), HorizontalBandedOperator))
