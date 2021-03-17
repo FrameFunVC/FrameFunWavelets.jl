@@ -1,17 +1,14 @@
 module CompactAZ
 
-
-
-
-
-
-using ...WaveletPlatforms, ...WaveletBases, FrameFun, BasisFunctions, FrameFunTranslates.CompactAZ.CompactFrameFunExtension, CompactTranslatesDict.CompactInfiniteVectors
+using FrameFun, BasisFunctions
+using ...WaveletPlatforms, ...WaveletBases, FrameFunTranslates.CompactAZ.CompactFrameFunExtension
 
 using WaveletsEvaluation.DWT: Wvl,Scl
 using FrameFunTranslates.CompactAZ.CompactFrameFunExtension: _nonzero_coefficients, _nonzero_pointsindices, ef_true_nonzero_reducedAZ_AAZAreductionsolver, ef_true_nonzero_reducedAAZAoperator
 import FrameFunTranslates.CompactAZ.CompactFrameFunExtension: ef_nonzero_coefficients, compactinfinitevectors, ef_nonzero_pointsindices,
     ef_sparse_reducedAAZAoperator, ef_sparseAZ_AAZAreductionsolver, ef_reducedAZ_AAZAreductionsolver, ef_reducedAAZAoperator, ef_AAZA_nonzero_row_indexset
 
+using CompactTranslatesDict: compactinfinitevector
 
 const WE_L = nonzero_coefficients
 const WE_M = AAZA_nonzero_row_indexset

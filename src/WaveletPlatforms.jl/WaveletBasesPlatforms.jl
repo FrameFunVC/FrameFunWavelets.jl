@@ -19,7 +19,7 @@ correct_sampling_parameter(::SamplingStrategy, ::AbstractWaveletPlatform, param,
 correct_sampling_parameter(::SamplingStrategy, ::AbstractWaveletPlatform, param::Int, L::Int; options...) =
     (round(Int, 1<<round(Int,log2(L/param))) * param)
 correctparamformat(::AbstractWaveletPlatform, ::Int) = true
-dualdictionary(platform::AbstractWaveletPlatform, param, measure::FourierMeasure; options...) =
+dualdictionary(platform::AbstractWaveletPlatform, param, measure::FourierWeight; options...) =
     wavelet_dual(unsafe_dictionary(platform, param))
 
 export scalingplatform
@@ -30,11 +30,17 @@ waveletplatform(P::AbstractWaveletPlatform) = platform(waveletbasis(dictionary(P
 waveletplatform(P::ProductPlatform) = ProductPlatform(map(waveletplatform, elements(P)))
 waveletplatform(w::DiscreteWavelet, ::Type{S}=Prl, scaled::Bool=false) where {S} = platform(waveletbasis(w,0,S,scaled))
 
-function dualdictionary(platform::AbstractWaveletPlatform, param, measure::UniformDiracComb;
+using BasisFunctions: isuniform
+
+function dualdictionary(platform::AbstractWaveletPlatform, param, measure::DiscreteWeight;
         options...)
+    # TODO: check for Dirac comb property
+    @assert isuniform(measure)
+    @assert points(measure) isa AbstractEquispacedGrid
+
     dict = dictionary(platform, param)
     g = grid(measure)
-    @assert support(dict) ≈ support(g)
+    @assert support(dict) ≈ covering(g)
     m = length(g) / length(dict)
     @assert round(Int,m) ≈ m
     m = round(Int, m)

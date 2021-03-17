@@ -51,7 +51,8 @@ function getindex(A::SparseiDWTMatrix, j::Int, i::Int)
     step = 1<<(A.J-band)
     A.filters[end-band-1][-step*offset+j-1]
 end
-using GridArrays.ModCartesianIndicesBase: ModUnitRange
+
+using GridArrays.PeriodicIndexing: PeriodicUnitRange
 function rowsupport!(vec::AbstractVector{Int}, M::SparseiDWTMatrix, row::Int)
     vec[1] = 1
     vec[2] = 2
@@ -61,7 +62,7 @@ function rowsupport!(vec::AbstractVector{Int}, M::SparseiDWTMatrix, row::Int)
     for band in 1:(M.J-1)
         step = 1<<(M.J-band)
         nzcolsinband = -floor(Int,(last(eachnonzeroindex(M.filters[end-band-1]))+1-row)/step):-ceil(Int,(first(eachnonzeroindex(M.filters[end-band-1]))  +1-row)/step)
-        mod_nzcolsinband = ModUnitRange( 1<<band,nzcolsinband .+ 1)
+        mod_nzcolsinband = PeriodicUnitRange( 1<<band,nzcolsinband .+ 1)
         for coli in  mod_nzcolsinband
             vec[i] =  1<<band + coli
             i += 1

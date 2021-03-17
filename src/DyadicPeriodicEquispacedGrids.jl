@@ -5,7 +5,7 @@ using GridArrays, DomainSets
 using DomainSets: endpoints
 
 import Base: promote_eltype, ==, size
-import GridArrays: name, support, isperiodic, length, similargrid, hasextension,
+import GridArrays: name, covering, isperiodic, length, similargrid, hasextension,
     extend, resize, PeriodicEquispacedGrid, _extension_size, rescale
 
 export isdyadic
@@ -30,7 +30,7 @@ end
 
 
 name(g::DyadicPeriodicEquispacedGrid) = "Dyadic periodic equispaced grid"
-support(grid::DyadicPeriodicEquispacedGrid) = Interval(grid.a, grid.b)
+covering(grid::DyadicPeriodicEquispacedGrid) = Interval(grid.a, grid.b)
 isperiodic(::DyadicPeriodicEquispacedGrid) = true
 
 export dyadic_length
@@ -45,13 +45,13 @@ length(g::DyadicPeriodicEquispacedGrid) = length(g.range)
 DyadicPeriodicEquispacedGrid(n::Int, d::AbstractInterval) =
     DyadicPeriodicEquispacedGrid(n, endpoints(d)...)
 similargrid(grid::DyadicPeriodicEquispacedGrid, ::Type{T}, n::Int) where {T} =
-    DyadicPeriodicEquispacedGrid{T}(n, map(T, endpoints(support(grid)))...)
+    DyadicPeriodicEquispacedGrid{T}(n, map(T, endpoints(covering(grid)))...)
 rescale(grid::DyadicPeriodicEquispacedGrid, a, b) =
     DyadicPeriodicEquispacedGrid{promote_type(typeof(a/2),typeof(b/2),eltype(grid))}(length(grid), a, b)
 DyadicPeriodicEquispacedGrid(n::Int, a, b) =
     DyadicPeriodicEquispacedGrid{promote_type(typeof(a/2),typeof(b/2))}(n, a, b)
 mapped_grid(grid::DyadicPeriodicEquispacedGrid, map::AffineMap) =
-    DyadicPeriodicEquispacedGrid(length(grid), endpoints(map*support(grid))...)
+    DyadicPeriodicEquispacedGrid(length(grid), endpoints(map*covering(grid))...)
 
 """
     isdyadic(grid::AbstractIntervalGrid)
